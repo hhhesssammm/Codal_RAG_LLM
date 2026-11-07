@@ -1,0 +1,6 @@
+# Compatibility recipe, run from repository root:
+# python -m pip install -r requirements/windows-validated.txt
+# Historical filename retained. Native Windows validation is still pending.
+# Python 3.12/Linux verified; declared Python support is 3.10-3.13.
+# Bounds live in pyproject.toml. This is not a fully pinned platform lockfile.
+-e .[models,llm,ui,dev]

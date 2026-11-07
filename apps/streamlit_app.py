@@ -1,625 +1,87 @@
+"""Run with: python -m streamlit run apps/streamlit_app.py"""
 from __future__ import annotations
+
+import json
+import os
 
 import streamlit as st
 
-from config import (
-    TOP_K,
-)
-
-from src.retrieval_engine import (
-    DualRetrievalEngine,
-    DualRetrievalResult,
-)
-
-
-# =========================================================
-# Page configuration
-# =========================================================
-
-st.set_page_config(
-
-    page_title=(
-        "Codal RAG Retrieval Demo"
-    ),
-
-    page_icon="📊",
-
-    layout="wide",
-)
-
-
-# =========================================================
-# RTL / Persian styling
-# =========================================================
-
-st.markdown(
-    """
-    <style>
-
-    html, body,
-    [class*="css"] {
-        direction: rtl;
-        text-align: right;
-    }
-
-    .block-container {
-        max-width: 1500px;
-        padding-top: 2rem;
-        padding-bottom: 3rem;
-    }
-
-    .result-title {
-        font-size: 1.05rem;
-        font-weight: 700;
-        margin-bottom: 0.35rem;
-    }
-
-    .path-box {
-        direction: rtl;
-        text-align: right;
-        background-color: rgba(128,128,128,0.08);
-        padding: 0.65rem;
-        border-radius: 0.5rem;
-        margin-top: 0.4rem;
-        margin-bottom: 0.6rem;
-    }
-
-    .chunk-text {
-        direction: rtl;
-        text-align: right;
-        line-height: 2;
-        white-space: pre-wrap;
-    }
-
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
-
-# =========================================================
-# Load expensive resources once
-# =========================================================
-
-@st.cache_resource(
-    show_spinner=(
-        "در حال بارگذاری مدل Embedding "
-        "و پایگاه‌های برداری..."
-    )
-)
-def load_engine():
-
-    return DualRetrievalEngine()
-
-
-# =========================================================
-# Helpers
-# =========================================================
-
-def get_chunk_text(
-    chunk: dict
-) -> str:
-
-    return (
-        chunk.get("text")
-        or chunk.get("content")
-        or ""
-    )
-
-
-def get_chunk_type(
-    chunk: dict
-) -> str:
-
-    return (
-        chunk.get("chunk_type")
-        or chunk.get("type")
-        or "unknown"
-    )
-
-
-def get_heading_path(
-    chunk: dict
-) -> list[str]:
-
-    return (
-        chunk.get("heading_path")
-        or []
-    )
-
-
-# =========================================================
-# Result card
-# =========================================================
-
-def render_result_card(
-    result: dict,
-    *,
-    show_structure: bool,
-):
-
-    chunk = result[
-        "chunk"
-    ]
-
-    rank = result[
-        "rank"
-    ]
-
-    score = result[
-        "score"
-    ]
-
-    chunk_id = chunk.get(
-        "chunk_id",
-        "-"
-    )
-
-    chunk_type = (
-        get_chunk_type(
-            chunk
-        )
-    )
-
-    text = get_chunk_text(
-        chunk
-    )
-
-    heading_path = (
-        get_heading_path(
-            chunk
-        )
-    )
-
-    # -----------------------------------------------------
-    # Card
-    # -----------------------------------------------------
-
-    with st.container(
-        border=True
-    ):
-
-        st.markdown(
-            f"### رتبه {rank}"
-        )
-
-        metric_col1, metric_col2 = (
-            st.columns(2)
-        )
-
-        with metric_col1:
-
-            st.metric(
-                "Similarity",
-                f"{score:.4f}",
-            )
-
-        with metric_col2:
-
-            st.metric(
-                "نوع Chunk",
-                chunk_type,
-            )
-
-        st.caption(
-            f"Chunk ID: {chunk_id}"
-        )
-
-        # -------------------------------------------------
-        # Structural information
-        # -------------------------------------------------
-
-        if (
-            show_structure
-            and heading_path
-        ):
-
-            path = " > ".join(
-                heading_path
-            )
-
-            st.markdown(
-                f"""
-                <div class="path-box">
-                    <strong>مسیر ساختاری:</strong><br>
-                    {path}
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-        company = (
-            chunk.get(
-                "company"
-            )
-        )
-
-        year = (
-            chunk.get(
-                "year"
-            )
-        )
-
-        document_type = (
-            chunk.get(
-                "document_type"
-            )
-        )
-
-        if (
-            show_structure
-            and (
-                company
-                or year
-                or document_type
-            )
-        ):
-
-            metadata_parts = []
-
-            if company:
-
-                metadata_parts.append(
-                    f"شرکت: {company}"
-                )
-
-            if year:
-
-                metadata_parts.append(
-                    f"سال: {year}"
-                )
-
-            if document_type:
-
-                metadata_parts.append(
-                    f"نوع گزارش: {document_type}"
-                )
-
-            st.caption(
-                " | ".join(
-                    metadata_parts
-                )
-            )
-
-        # -------------------------------------------------
-        # Chunk text
-        # -------------------------------------------------
-
-        st.markdown(
-            "**متن بازیابی‌شده:**"
-        )
-
-        st.markdown(
-            f"""
-            <div class="chunk-text">
-            {text}
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        # -------------------------------------------------
-        # Debug information
-        # -------------------------------------------------
-
-        with st.expander(
-            "جزئیات فنی Chunk"
-        ):
-
-            st.write(
-                "Vector ID:",
-                result.get(
-                    "vector_id"
-                ),
-            )
-
-            st.write(
-                "Document ID:",
-                chunk.get(
-                    "document_id"
-                ),
-            )
-
-            st.write(
-                "Token Count:",
-                chunk.get(
-                    "token_count"
-                ),
-            )
-
-            st.write(
-                "Section:",
-                chunk.get(
-                    "section"
-                ),
-            )
-
-            st.write(
-                "Subsection:",
-                chunk.get(
-                    "subsection"
-                ),
-            )
-
-            if (
-                chunk.get(
-                    "embedding_text"
-                )
-            ):
-
-                st.markdown(
-                    "**متنی که واقعاً Embed شده:**"
-                )
-
-                st.code(
-                    chunk[
-                        "embedding_text"
-                    ]
-                )
-
-
-# =========================================================
-# Result columns
-# =========================================================
-
-def render_comparison(
-    result: DualRetrievalResult,
-):
-
-    # -----------------------------------------------------
-    # Query information
-    # -----------------------------------------------------
-
-    st.markdown("---")
-
-    st.subheader(
-        "اطلاعات Query"
-    )
-
-    query_col1, query_col2 = (
-        st.columns(2)
-    )
-
-    with query_col1:
-
-        st.markdown(
-            "**سؤال اصلی**"
-        )
-
-        st.write(
-            result.original_query
-        )
-
-    with query_col2:
-
-        st.markdown(
-            "**سؤال پس از نرمال‌سازی**"
-        )
-
-        st.write(
-            result.normalized_query
-        )
-
-    st.markdown("---")
-
-    # -----------------------------------------------------
-    # Two-system comparison
-    # -----------------------------------------------------
-
-    baseline_column, proposed_column = (
-        st.columns(
-            [1, 1],
-            gap="large",
-        )
-    )
-
-    # =====================================================
-    # BASELINE
-    # =====================================================
-
-    with baseline_column:
-
-        st.header(
-            "Baseline Retrieval"
-        )
-
-        st.caption(
-            "Fixed-size Chunking"
-        )
-
-        st.metric(
-            "تعداد نتایج",
-            len(
-                result.baseline
-            ),
-        )
-
-        if not result.baseline:
-
-            st.warning(
-                "نتیجه‌ای بازیابی نشد."
-            )
-
-        for item in result.baseline:
-
-            render_result_card(
-                item,
-                show_structure=False,
-            )
-
-    # =====================================================
-    # PROPOSED
-    # =====================================================
-
-    with proposed_column:
-
-        st.header(
-            "Markdown-Aware Retrieval"
-        )
-
-        st.caption(
-            "Structure-Aware Chunking"
-        )
-
-        st.metric(
-            "تعداد نتایج",
-            len(
-                result.proposed
-            ),
-        )
-
-        if not result.proposed:
-
-            st.warning(
-                "نتیجه‌ای بازیابی نشد."
-            )
-
-        for item in result.proposed:
-
-            render_result_card(
-                item,
-                show_structure=True,
-            )
-
-
-# =========================================================
-# Main UI
-# =========================================================
-
-st.title(
-    "مقایسه Retrieval در RAG گزارش‌های کدال"
-)
-
-st.write(
-    """
-    این دمو نتایج بازیابی دو Pipeline را برای یک Query یکسان
-    مقایسه می‌کند. هر دو سیستم از یک مدل Embedding، یک Query
-    embedding و مقدار Top-K یکسان استفاده می‌کنند.
-    """
-)
-
-
-# =========================================================
-# Engine
-# =========================================================
-
-try:
-
-    engine = load_engine()
-
-except Exception as error:
-
-    st.error(
-        "خطا در بارگذاری Retrieval Engine"
-    )
-
-    st.exception(
-        error
-    )
-
-    st.stop()
-
-
-# =========================================================
-# Search form
-# =========================================================
-
-with st.form(
-    "retrieval_form"
-):
-
-    query = st.text_input(
-
-        "سؤال کاربر",
-
-        value=(
-            "علت کاهش فروش شرکت "
-            "در سال ۱۴۰۳ چیست؟"
-        ),
-    )
-
-    top_k = st.slider(
-
-        "Top-K",
-
-        min_value=1,
-
-        max_value=10,
-
-        value=TOP_K,
-
-        step=1,
-    )
-
-    submitted = (
-        st.form_submit_button(
-            "اجرای Retrieval",
-            type="primary",
-        )
-    )
-
-
-# =========================================================
-# Run retrieval
-# =========================================================
-
-if submitted:
-
-    if not query.strip():
-
-        st.warning(
-            "لطفاً سؤال را وارد کنید."
-        )
-
-        st.stop()
-
-    with st.spinner(
-        "در حال بازیابی از هر دو سیستم..."
-    ):
-
+from codal_rag.config import load_config
+from codal_rag.retrieval.engine import DualRetrievalEngine
+from codal_rag.extraction.citation_validation import validate_citation_view
+
+
+@st.cache_resource(show_spinner='در حال بارگذاری مدل و ایندکس‌ها...')
+def load_engine(config):
+    return DualRetrievalEngine(config=config)
+
+
+def render_result_card(result: dict) -> None:
+    chunk = result['chunk']
+    st.markdown(f"**رتبه {result['rank']}** · {result['score']:.4f}")
+    st.caption(' > '.join(chunk.get('heading_path') or []))
+    st.write(chunk.get('text') or chunk.get('content') or '')
+    with st.expander('مشخصات منبع'):
+        st.json({key: chunk.get(key) for key in ('document_id', 'chunk_id', 'source_file',
+            'company', 'year', 'document_type', 'section', 'subsection', 'chunk_type', 'source_block_ids')})
+    st.divider()
+
+
+def main() -> None:
+    st.set_page_config(page_title='Codal RAG', page_icon='📊', layout='wide')
+    st.markdown('<style>.stMain {direction:rtl;text-align:right}</style>', unsafe_allow_html=True)
+    st.title('مقایسه بازیابی گزارش‌های کدال')
+    st.write('Baseline و Proposed با مدل، بردار پرس‌وجو و Top-K یکسان مقایسه می‌شوند.')
+    config_text = st.sidebar.text_input('فایل‌های YAML (با کاما جدا کنید)', value=os.getenv('CODAL_CONFIG', ''))
+    try:
+        cfg = load_config([p.strip() for p in config_text.split(',') if p.strip()])
+    except (ValueError, OSError) as exc:
+        st.error(str(exc))
+        return
+    if cfg.embedding.backend == 'hash':
+        st.warning('حالت smoke: امتیازها برای آزمون اتصال مراحل‌اند و معیار کیفیت معنایی نیستند.')
+    if st.sidebar.button('بارگذاری دوباره ایندکس‌ها'):
+        load_engine.clear()
+    with st.form('retrieval_form'):
+        query = st.text_input('سؤال کاربر', value='')
+        top_k = st.number_input('Top-K', min_value=1, max_value=max(100, cfg.top_k), value=cfg.top_k, step=1)
+        submitted = st.form_submit_button('جست‌وجو')
+    missing = any(not cfg.path('vector_db', m, 'config.json').exists() for m in ('baseline', 'proposed'))
+    if missing:
+        st.info('ابتدا هر دو ایندکس را با دستور codal-rag build یا index بسازید.')
+    elif submitted:
         try:
+            engine = load_engine(cfg)
+            result = engine.search(query, int(top_k))
+            st.caption('پرس‌وجوی نرمال‌شده: ' + result.normalized_query)
+            for column, method in zip(st.columns(2), ('baseline', 'proposed')):
+                with column:
+                    st.header(method.title())
+                    hits = getattr(result, method)
+                    if not hits:
+                        st.info('نتیجه‌ای یافت نشد.')
+                    for hit in hits:
+                        render_result_card(hit)
+            st.download_button('دریافت نتایج JSON',
+                json.dumps(engine.result_payload(result), ensure_ascii=False, indent=2),
+                file_name='retrieval.json', mime='application/json')
+        except (ValueError, OSError, RuntimeError) as exc:
+            st.error(str(exc))
+    with st.expander('نمایش ارجاع‌های خروجی استخراج'):
+        uploaded = st.file_uploader('فایل JSON استخراج', type=['json'])
+        if uploaded:
+            try:
+                payload = json.loads(uploaded.getvalue())
+                citations = payload['citation_view']
+                validation = validate_citation_view(citations)
+                if not validation['valid']:
+                    st.error('ارجاع نامعتبر: ' + '; '.join(validation['errors']))
+                else:
+                    st.json(citations)
+                    st.caption('اعتبار ساختاری ارجاع به معنی تأیید صحت معنایی ادعا نیست.')
+            except (ValueError, KeyError, TypeError):
+                st.error('فایل باید خروجی JSON معتبر دستور extract باشد.')
 
-            result = engine.search(
 
-                query=query,
-
-                top_k=top_k,
-            )
-
-        except Exception as error:
-
-            st.error(
-                "خطا هنگام Retrieval"
-            )
-
-            st.exception(
-                error
-            )
-
-            st.stop()
-
-    # -----------------------------------------------------
-    # Save experiment automatically
-    # -----------------------------------------------------
-
-    output_path = (
-        engine.save_result(
-            result
-        )
-    )
-
-    # -----------------------------------------------------
-    # Display
-    # -----------------------------------------------------
-
-    render_comparison(
-        result
-    )
-
-    st.success(
-        "نتیجه Retrieval ذخیره شد."
-    )
-
-    st.caption(
-        f"Experiment file: {output_path}"
-    )
+if __name__ == '__main__':
+    main()

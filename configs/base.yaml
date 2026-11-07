@@ -1,0 +1,37 @@
+# Paths are relative to this project root, not the shell's working directory.
+project_root: ..
+data_dir: data
+mode: both
+top_k: 5
+random_seed: 42
+chunking:
+  max_tokens: 500
+  baseline_overlap: 100
+  min_merge_tokens: 40
+  include_path: true
+embedding:
+  backend: sentence_transformers
+  model: intfloat/multilingual-e5-base
+  revision: null
+  batch_size: 16
+  normalize: true
+  similarity: cosine
+  query_prefix: 'query: '
+  passage_prefix: 'passage: '
+  tokenizer: transformers
+  local_files_only: false
+llm:
+  provider: openai_compatible
+  model: ''  # Set CODAL_LLM_MODEL for the provider you use.
+  base_url: https://api.openai.com/v1
+  temperature: 0.0
+  max_output_tokens: 2000
+  timeout: 60.0
+  max_retries: 2
+evaluation:
+  evidence_threshold: 0.70
+  answer_threshold: 0.60
+  semantic_threshold: 0.70
+  faithfulness_threshold: 0.50
+  semantic_enabled: false
+  semantic_model: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2

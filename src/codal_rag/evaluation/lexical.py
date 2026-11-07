@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-import math
 import re
 
-from difflib import SequenceMatcher
-from typing import Any
 
 # ============================================
 # Persian text normalization

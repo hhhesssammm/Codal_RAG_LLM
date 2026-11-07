@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from typing import Any
+import math
 
-from src.evidence_context import (
+from codal_rag.extraction.evidence import (
     EvidenceItem,
 )
 
@@ -124,9 +125,7 @@ def validate_extraction(
 
             for evidence_id in evidence_ids:
 
-                if evidence_id not in (
-                    valid_evidence_ids
-                ):
+                if not isinstance(evidence_id, str) or evidence_id not in valid_evidence_ids:
 
                     errors.append(
                         f"{prefix} references "
@@ -152,7 +151,7 @@ def validate_extraction(
                         confidence
                     )
 
-                    if not (
+                    if isinstance(confidence, bool) or not math.isfinite(confidence_value) or not (
                         0 <= confidence_value <= 1
                     ):
 
@@ -186,9 +185,7 @@ def validate_extraction(
 
             if level_name == "latent":
 
-                unique_ids = set(
-                    evidence_ids
-                )
+                unique_ids = {value for value in evidence_ids if isinstance(value, str)}
 
                 if len(unique_ids) < 2:
 
@@ -236,6 +233,12 @@ def validate_extraction(
             "insufficient_evidence must be boolean."
         )
 
+    if not isinstance(extraction.get("query"), str) or not extraction["query"].strip():
+        errors.append("query must be a nonempty string.")
+    if not isinstance(extraction.get("notes", ""), str):
+        errors.append("notes must be a string.")
+    if not any(extraction.get(level) for level in LEVEL_NAMES) and insufficient is False:
+        errors.append("An extraction with no claims must report insufficient_evidence=true.")
     return errors
 
 

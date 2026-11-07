@@ -1,0 +1,10 @@
+# Deterministic plumbing checks only; never use for research quality scores.
+embedding:
+  backend: hash
+  model: smoke-hash-v1
+  tokenizer: whitespace
+  hash_dimension: 128
+  query_prefix: ''
+  passage_prefix: ''
+evaluation:
+  semantic_enabled: false

@@ -1,302 +1,76 @@
-import json
-import config
+from __future__ import annotations
+
+from dataclasses import asdict
 from pathlib import Path
 
-from src.tokenizer_utils import (
-    TokenizerWrapper,
-)
-
-from src.baseline_chunker import (
-    fixed_size_chunking,
-)
-
-from src.structure_chunker import (
-    structure_aware_chunking,
-)
-
-import json
-
-from pathlib import Path
-
-from src.chunk_models import (
-    DocumentMetadata,
-)
-
-from src.structure_chunker import (
-    StructureChunkerConfig,
-    structure_aware_chunking,
-)
-
-from src.tokenizer_utils import (
-    TokenizerWrapper,
-)
+from codal_rag.chunking.baseline import fixed_size_chunking
+from codal_rag.chunking.structure import StructureChunkerConfig, structure_aware_chunking
+from codal_rag.chunking.tokenization import create_tokenizer
+from codal_rag.config import AppConfig
+from codal_rag.models import DocumentMetadata
+from codal_rag.normalization.persian import normalize_markdown, assert_markdown_structure_preserved
+from codal_rag.pipelines.normalize import markdown_files
+from codal_rag.storage.json_io import save_json, digest
 
 
-INPUT_DIR = Path(
-    "data/normalized_markdown"
-)
-
-BASELINE_DIR = Path(
-    "data/chunks/baseline"
-)
-
-PROPOSED_DIR = Path(
-    "data/chunks/proposed"
-)
-
-
-def save_chunks(
-    chunks,
-    path: Path
-):
-
-    path.parent.mkdir(
-        parents=True,
-        exist_ok=True
-    )
-
-    data = [
-        chunk.to_dict()
-        for chunk in chunks
-    ]
-
-    with path.open(
-        "w",
-        encoding="utf-8"
-    ) as f:
-
-        json.dump(
-            data,
-            f,
-            ensure_ascii=False,
-            indent=2
-        )
+def process_document(path: Path, tokenizer, config: AppConfig, *,
+                     metadata: DocumentMetadata | None = None) -> dict[str, list[dict]]:
+    metadata = metadata or DocumentMetadata(document_id=path.stem, source_file=path.name)
+    original = path.read_text(encoding="utf-8")
+    markdown = normalize_markdown(original)
+    assert_markdown_structure_preserved(original, markdown)
+    result = {}
+    c = config.chunking
+    if config.mode in {"baseline", "both"}:
+        chunks = fixed_size_chunking(markdown, metadata.document_id, tokenizer,
+                                     chunk_size=c.max_tokens, overlap=c.baseline_overlap)
+        records = []
+        for chunk in chunks:
+            record = chunk.to_dict()
+            record.update(asdict(metadata))
+            records.append(record)
+        result["baseline"] = records
+    if config.mode in {"proposed", "both"}:
+        structure_config = StructureChunkerConfig(
+            max_tokens=c.max_tokens, min_merge_tokens=c.min_merge_tokens,
+            include_path_in_retrieval_text=c.include_path)
+        result["proposed"] = [chunk.to_dict() for chunk in structure_aware_chunking(
+            markdown, metadata, tokenizer, structure_config)]
+    return result
 
 
-def process_document(
-    path: Path,
-    tokenizer: TokenizerWrapper
-):
+def chunk_documents(input_path: str | Path, config: AppConfig, *, tokenizer=None,
+                    metadata_by_id: dict[str, dict] | None = None) -> dict[str, list[dict]]:
+    """Normalize and chunk once; relative paths are stable corpus document IDs.
 
-    document_id = path.stem
-
-    markdown = path.read_text(
-        encoding="utf-8"
-    )
-
-    print()
-    print("=" * 70)
-    print(
-        f"Document: {document_id}"
-    )
-
-    # ========================================
-    # SYSTEM A
-    # ========================================
-
-    baseline_chunks = (
-        fixed_size_chunking(
-            markdown=markdown,
-            document_id=document_id,
-            tokenizer=tokenizer,
-            chunk_size=config.MAX_CHUNK_TOKENS,
-            overlap=100
-        )
-    )
-
-    # ========================================
-    # SYSTEM B
-    # ========================================
-
-    proposed_chunks = (
-        structure_aware_chunking(
-            markdown=markdown,
-            document_id=document_id,
-            tokenizer=tokenizer,
-            max_tokens=config.MAX_CHUNK_TOKENS
-        )
-    )
-
-    print(
-        f"Baseline chunks: "
-        f"{len(baseline_chunks)}"
-    )
-
-    print(
-        f"Proposed chunks: "
-        f"{len(proposed_chunks)}"
-    )
-
-    # ========================================
-    # Save
-    # ========================================
-
-    save_chunks(
-        baseline_chunks,
-        BASELINE_DIR
-        / f"{document_id}.json"
-    )
-
-    save_chunks(
-        proposed_chunks,
-        PROPOSED_DIR
-        / f"{document_id}.json"
-    )
-
-
-
-
-# =========================================================
-# Paths
-# =========================================================
-
-INPUT_FILE = Path(
-    "data/normalized_markdown/foolad/1.md"
-)
-
-OUTPUT_FILE = Path(
-    "data/chunks/proposed/1.json"
-)
-
-
-# =========================================================
-# Document metadata
-# =========================================================
-
-metadata = DocumentMetadata(
-
-    document_id="1",
-
-    company="شرکت الف",
-
-    year="1403",
-
-    document_type="گزارش تفسیری مدیریت",
-
-    source_file=INPUT_FILE.name,
-)
-
-
-# =========================================================
-# Configuration
-# =========================================================
-
-config = StructureChunkerConfig(
-
-    max_tokens=500,
-
-    include_path_in_retrieval_text=True,
-
-    path_separator=" > ",
-)
-
-
-# =========================================================
-# Main
-# =========================================================
-
-def main():
-
-    print(
-        "Loading tokenizer..."
-    )
-
-    tokenizer = TokenizerWrapper()
-
-    files = list(
-        INPUT_DIR.rglob(
-            "*.md"
-        )
-    )
-
-    print(
-        f"{len(files)} documents found."
-    )
-
+    Replace each method's corpus.json so removed source documents cannot silently
+    remain in later indexes. Indexing reads this snapshot, not stale per-file JSONs.
+    """
+    if metadata_by_id is not None and not isinstance(metadata_by_id, dict):
+        raise ValueError("Document metadata must be an object keyed by document ID")
+    source = Path(input_path)
+    files = markdown_files(source)
+    root = source if source.is_dir() else source.parent
+    tokenizer = tokenizer or create_tokenizer(config)
+    corpus: dict[str, list[dict]] = {}
+    source_hashes = {}
     for path in files:
-
-        process_document(
-            path,
-            tokenizer
-        )
-
-    markdown = INPUT_FILE.read_text(
-        encoding="utf-8"
-    )
-
-    chunks = structure_aware_chunking(
-        markdown=markdown,
-        metadata=metadata,
-        tokenizer=tokenizer,
-        config=config,
-    )
-
-    OUTPUT_FILE.parent.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
-
-    with OUTPUT_FILE.open(
-        "w",
-        encoding="utf-8",
-    ) as f:
-
-        json.dump(
-            [
-                chunk.to_dict()
-                for chunk in chunks
-            ],
-            f,
-            ensure_ascii=False,
-            indent=2,
-        )
-
-    print()
-    print("=" * 70)
-
-    print(
-        f"Created chunks: {len(chunks)}"
-    )
-
-    print(
-        f"Output: {OUTPUT_FILE}"
-    )
-
-    print("=" * 70)
-
-    for chunk in chunks:
-
-        print()
-
-        print(
-            f"ID: {chunk.chunk_id}"
-        )
-
-        print(
-            f"TYPE: {chunk.chunk_type}"
-        )
-
-        print(
-            "PATH:",
-            " > ".join(
-                chunk.heading_path
-            )
-        )
-
-        print(
-            f"TOKENS: {chunk.token_count}"
-        )
-
-        print("-" * 60)
-
-        print(
-            chunk.text[:500]
-        )
-
-
-
-
-
-
-if __name__ == "__main__":
-    main()
+        relative = path.relative_to(root)
+        document_id = relative.with_suffix("").as_posix()
+        supplied = (metadata_by_id or {}).get(document_id, {})
+        if not isinstance(supplied, dict) or set(supplied) - {"company", "year", "document_type"}:
+            raise ValueError(f"Invalid metadata for {document_id}; use company, year, document_type")
+        if any(value is not None and not isinstance(value, str) for value in supplied.values()):
+            raise ValueError(f"Metadata values for {document_id} must be strings or null")
+        metadata = DocumentMetadata(**{**supplied, "document_id": document_id,
+                                       "source_file": relative.as_posix()})
+        source_hashes[document_id] = digest(path.read_text(encoding="utf-8"))
+        for method, records in process_document(path, tokenizer, config, metadata=metadata).items():
+            corpus.setdefault(method, []).extend(records)
+    for method, records in corpus.items():
+        if not records:
+            raise ValueError(f"No {method} chunks produced; documents may be empty")
+        save_json(records, config.path("chunks", method, "corpus.json"))
+        save_json({"source_sha256": digest(source_hashes), "documents": source_hashes,
+                   "chunks_sha256": digest(records)}, config.path("chunks", method, "manifest.json"))
+    return corpus

@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.evidence_context import (
+from codal_rag.extraction.evidence import (
     EvidenceItem,
     build_evidence_context,
 )
 
-from src.llm_client import LLMClient
+from codal_rag.llm.client import LLMClient
+from codal_rag.extraction.prompts import SYSTEM_PROMPT
+from codal_rag.extraction.validation import assert_valid_extraction
 
 class ThreeLevelExtractor:
 
@@ -16,10 +18,7 @@ class ThreeLevelExtractor:
         llm_client: LLMClient | None = None,
     ):
 
-        self.llm_client = (
-            llm_client
-            or LLMClient()
-        )
+        self.llm_client = llm_client
 
 
     def extract(
@@ -49,6 +48,10 @@ class ThreeLevelExtractor:
                 ),
             }
 
+        if len({e.evidence_id for e in evidence_items}) != len(evidence_items):
+            raise ValueError("Evidence IDs must be unique")
+        if any(not e.document_id or not e.chunk_id for e in evidence_items):
+            raise ValueError("Evidence must be traceable to a document and chunk")
         evidence_context = (
             build_evidence_context(
                 evidence_items
@@ -77,10 +80,13 @@ class ThreeLevelExtractor:
 """
 
         result = (
-            self.llm_client.generate_json(
+            (self.llm_client or LLMClient()).generate_json(
                 system_prompt=SYSTEM_PROMPT,
                 user_prompt=user_prompt,
             )
         )
 
+        assert_valid_extraction(result, evidence_items)
+        if result.get("query") != query:
+            raise ValueError("Extraction query does not match the retrieval query")
         return result

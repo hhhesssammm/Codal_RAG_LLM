@@ -1,7 +1,6 @@
 import re
-import config
-from src.chunk_models import Chunk
-from src.tokenizer_utils import TokenizerWrapper
+from codal_rag.models import Chunk
+from codal_rag.chunking.tokenization import TokenizerWrapper
 
 
 def markdown_to_plain_text(
@@ -133,11 +132,11 @@ def fixed_size_chunking(
     markdown: str,
     document_id: str,
     tokenizer: TokenizerWrapper,
-    chunk_size: int = config.MAX_CHUNK_TOKENS,
+    chunk_size: int = 500,
     overlap: int = 100
 ) -> list[Chunk]:
 
-    if overlap >= chunk_size:
+    if chunk_size <= 0 or overlap < 0 or overlap >= chunk_size:
         raise ValueError(
             "overlap must be smaller than chunk_size"
         )

@@ -3,8 +3,6 @@ from dataclasses import dataclass, asdict, field
 from typing import Optional
 
 
-from dataclasses import dataclass, asdict
-from typing import Optional, Any
 
 @dataclass
 class DocumentMetadata:
@@ -139,3 +137,23 @@ class DualRetrievalResult:
     baseline: list[dict]
 
     proposed: list[dict]
+
+
+@dataclass
+class Chunk:
+    """Baseline record, retaining Demo's content field and identifier convention."""
+    chunk_id: str
+    document_id: str
+    pipeline: str
+    content: str
+    chunk_type: str
+    token_count: int
+    heading_path: list[str] = field(default_factory=list)
+    block_index: int = 0
+    company: Optional[str] = None
+    year: Optional[str] = None
+    document_type: Optional[str] = None
+    source_file: Optional[str] = None
+
+    def to_dict(self) -> dict:
+        return asdict(self)

@@ -2,17 +2,17 @@
 
 from dataclasses import dataclass
 
-from src.chunk_models import (
+from codal_rag.models import (
     DocumentMetadata,
     StructuredChunk,
 )
 
-from src.markdown_parser import (
+from codal_rag.parsing.markdown import (
     MarkdownBlock,
     parse_markdown,
 )
 
-from src.tokenizer_utils import (
+from codal_rag.chunking.tokenization import (
     TokenizerWrapper,
 )
 
@@ -36,6 +36,10 @@ class StructureChunkerConfig:
 
     # Separator shown to embedding model.
     path_separator: str = " > "
+
+    def __post_init__(self):
+        if self.max_tokens <= 0 or self.min_merge_tokens < 0:
+            raise ValueError("Chunk token budget must be positive; merge budget nonnegative")
 
 
 # =========================================================
@@ -126,6 +130,9 @@ def token_split(
     tokenizer: TokenizerWrapper,
     max_tokens: int,
 ) -> list[str]:
+
+    if max_tokens <= 0:
+        raise ValueError("No token budget remains after structural headings")
 
     token_ids = tokenizer.encode(
         text
@@ -634,12 +641,7 @@ def split_table_block(
     # -----------------------------------------------------
 
     if len(lines) < 3:
-
-        return token_split(
-            text=table_text,
-            tokenizer=tokenizer,
-            max_tokens=max_tokens,
-        )
+        raise ValueError("A table header exceeds the token budget; increase max_tokens")
 
     header = lines[0]
 
@@ -736,8 +738,9 @@ def split_table_block(
             # This may exceed max_tokens intentionally.
             # ---------------------------------------------
 
-            parts.append(
-                single_row_table
+            raise ValueError(
+                "A table header plus one row exceeds the token budget. "
+                "Increase chunking.max_tokens or preprocess the wide table; rows are never truncated."
             )
 
     # -----------------------------------------------------
@@ -844,6 +847,9 @@ def make_chunk(
         heading_path=heading_path,
         config=config,
     )
+
+    if tokenizer.count(retrieval_text) > config.max_tokens:
+        raise ValueError("Chunk including its heading exceeds max_tokens; increase the budget")
 
     return StructuredChunk(
 
@@ -1056,6 +1062,14 @@ def structure_aware_chunking(
 
             continue
 
+        # Reserve space for the structural path before splitting content.
+        prefix = build_retrieval_text("", block.heading_path, config)
+        content_budget = config.max_tokens - tokenizer.count(prefix)
+        if prefix:
+            content_budget -= 2  # conservative allowance for tokenizer boundary effects
+        if content_budget <= 0:
+            raise ValueError("Heading path exhausts chunk token budget; increase max_tokens")
+
         # =================================================
         # TABLE
         # =================================================
@@ -1078,7 +1092,7 @@ def structure_aware_chunking(
                     ),
                     tokenizer=tokenizer,
                     max_tokens=(
-                        config.max_tokens
+                        content_budget
                     ),
                 )
             )
@@ -1138,7 +1152,7 @@ def structure_aware_chunking(
             block=block,
             tokenizer=tokenizer,
             max_tokens=(
-                config.max_tokens
+                content_budget
             ),
         )
 
@@ -1150,7 +1164,7 @@ def structure_aware_chunking(
             pieces=pieces,
             tokenizer=tokenizer,
             max_tokens=(
-                config.max_tokens
+                content_budget
             ),
             min_tokens=(
                 config.min_merge_tokens

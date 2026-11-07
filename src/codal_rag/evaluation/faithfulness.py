@@ -1,3 +1,6 @@
+from __future__ import annotations
+from codal_rag.evaluation.semantic import SemanticEvaluator
+
 # ============================================
 # Faithfulness
 # ============================================
@@ -59,7 +62,7 @@ def calculate_citation_faithfulness(
         ]
 
         supported = (
-            len(resolved) > 0
+            bool(evidence_ids) and len(resolved) == len(evidence_ids)
         )
 
         if supported:
@@ -81,6 +84,7 @@ def calculate_citation_faithfulness(
                 ),
 
                 "supported": supported,
+                "meaning": "structural_citation_validity_only",
             }
         )
 
@@ -249,6 +253,7 @@ def calculate_semantic_faithfulness(
         ),
 
         "threshold": threshold,
+        "score_type": "embedding_similarity_proxy_not_entailment",
 
         "details": details,
     }

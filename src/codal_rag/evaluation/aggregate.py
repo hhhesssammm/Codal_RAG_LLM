@@ -1,3 +1,5 @@
+import math
+
 # ============================================
 # Mean helper
 # ============================================
@@ -33,6 +35,7 @@ def safe_mean(
 def aggregate_method(
     detailed_results: list[dict],
     method: str,
+    top_k: int = 5,
 ) -> dict:
 
     method_results = [
@@ -42,14 +45,14 @@ def aggregate_method(
 
     precision_values = [
         item["retrieval"][
-            f"precision@{TOP_K}"
+            f"precision@{top_k}"
         ]
         for item in method_results
     ]
 
     recall_values = [
         item["retrieval"][
-            f"recall@{TOP_K}"
+            f"recall@{top_k}"
         ]
         for item in method_results
     ]
@@ -133,13 +136,13 @@ def aggregate_method(
 
         "retrieval": {
 
-            f"precision@{TOP_K}": (
+            f"precision@{top_k}": (
                 safe_mean(
                     precision_values
                 )
             ),
 
-            f"recall@{TOP_K}": (
+            f"recall@{top_k}": (
                 safe_mean(
                     recall_values
                 )
@@ -204,6 +207,7 @@ def aggregate_method(
 
 def aggregate_by_type(
     detailed_results: list[dict],
+    top_k: int = 5,
 ) -> dict:
 
     output = {}
@@ -233,14 +237,14 @@ def aggregate_by_type(
             "baseline": (
                 aggregate_method(
                     subset,
-                    "baseline",
+                    "baseline", top_k,
                 )
             ),
 
             "proposed": (
                 aggregate_method(
                     subset,
-                    "proposed",
+                    "proposed", top_k,
                 )
             ),
         }

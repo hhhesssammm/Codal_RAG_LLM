@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "codal-rag"
+version = "0.1.0"
+description = "Reproducible Persian financial-document RAG experiments"
+readme = "README.md"
+requires-python = ">=3.10,<3.14"
+dependencies = ["numpy>=1.26,<3", "PyYAML>=6,<7", "faiss-cpu>=1.8,<2"]
+
+[project.optional-dependencies]
+models = ["sentence-transformers>=3,<6", "transformers>=4.41,<5"]
+llm = ["openai>=1.30,<4"]
+ui = ["streamlit>=1.35,<2"]
+dev = ["pytest>=8,<10", "ruff>=0.9,<1", "build>=1,<2"]
+
+[project.scripts]
+codal-rag = "codal_rag.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["codal_rag*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["external: opt-in tests requiring downloaded models or API credentials"]
+addopts = "-m 'not external'"
+
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E9", "F"]

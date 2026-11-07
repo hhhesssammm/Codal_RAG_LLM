@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-import math
-import re
 
 from difflib import SequenceMatcher
-from typing import Any
+from codal_rag.evaluation.lexical import normalize_text, tokenize
 
 
 
@@ -148,7 +146,6 @@ def is_relevant_chunk(
         # باید سند نیز یکسان باشد.
         if (
             gold_document_id
-            and chunk_document_id
             and gold_document_id
             != chunk_document_id
         ):
@@ -190,6 +187,10 @@ def calculate_retrieval_metrics(
     Evidence Hit Rate
     """
 
+    if type(k) is not int or k <= 0:
+        raise ValueError("k must be a positive integer")
+    if not 0 < evidence_threshold <= 1:
+        raise ValueError("evidence_threshold must be in (0, 1]")
     top_results = (
         retrieval_results[:k]
     )
