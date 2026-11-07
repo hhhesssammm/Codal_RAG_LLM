@@ -1,4 +1,4 @@
-from src.persian_normalizer import (
+from codal_rag.normalization.persian import (
     NormalizerConfig,
     normalize_markdown,
     assert_markdown_structure_preserved,

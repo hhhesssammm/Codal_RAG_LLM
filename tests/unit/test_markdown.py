@@ -1,4 +1,4 @@
-from src.markdown_parser import (
+from codal_rag.parsing.markdown import (
     parse_markdown,
 )
 

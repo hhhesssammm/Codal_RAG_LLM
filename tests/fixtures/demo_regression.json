@@ -1,0 +1,536 @@
+{
+  "reference_commit": "208bb64bdea92f919008eb5bba2ce24588a92daf",
+  "normalization": "# گزارش مدیریت\n\n## فروش\n\nفروش شرکت در سال 1403 کاهش یافته است.\n\n| سال | مبلغ |\n| --- | ---: |\n| 1403 | 1,200 |\n\n## ریسک\n\n- هزینه مالی\n- نرخ ارز",
+  "blocks": [
+    {
+      "block_id": 0,
+      "block_type": "heading",
+      "content": "گزارش مدیریت",
+      "heading_path": [
+        "گزارش مدیریت"
+      ],
+      "heading_level": 1
+    },
+    {
+      "block_id": 1,
+      "block_type": "heading",
+      "content": "فروش",
+      "heading_path": [
+        "گزارش مدیریت",
+        "فروش"
+      ],
+      "heading_level": 2
+    },
+    {
+      "block_id": 2,
+      "block_type": "paragraph",
+      "content": "فروش شرکت در سال 1403 کاهش یافته است.",
+      "heading_path": [
+        "گزارش مدیریت",
+        "فروش"
+      ],
+      "heading_level": null
+    },
+    {
+      "block_id": 3,
+      "block_type": "table",
+      "content": "| سال | مبلغ |\n| --- | ---: |\n| 1403 | 1,200 |",
+      "heading_path": [
+        "گزارش مدیریت",
+        "فروش"
+      ],
+      "heading_level": null
+    },
+    {
+      "block_id": 4,
+      "block_type": "heading",
+      "content": "ریسک",
+      "heading_path": [
+        "گزارش مدیریت",
+        "ریسک"
+      ],
+      "heading_level": 2
+    },
+    {
+      "block_id": 5,
+      "block_type": "list",
+      "content": "- هزینه مالی\n- نرخ ارز",
+      "heading_path": [
+        "گزارش مدیریت",
+        "ریسک"
+      ],
+      "heading_level": null
+    }
+  ],
+  "baseline": [
+    {
+      "chunk_id": "synthetic_baseline_0000",
+      "document_id": "synthetic",
+      "pipeline": "baseline",
+      "content": "گزارش مدیریت فروش فروش شرکت در سال 1403 کاهش یافته است. سال",
+      "chunk_type": "fixed",
+      "token_count": 12,
+      "heading_path": [],
+      "block_index": 0,
+      "company": null,
+      "year": null,
+      "document_type": null,
+      "source_file": null
+    },
+    {
+      "chunk_id": "synthetic_baseline_0001",
+      "document_id": "synthetic",
+      "pipeline": "baseline",
+      "content": "یافته است. سال مبلغ 1403 1,200 ریسک هزینه مالی نرخ ارز",
+      "chunk_type": "fixed",
+      "token_count": 11,
+      "heading_path": [],
+      "block_index": 1,
+      "company": null,
+      "year": null,
+      "document_type": null,
+      "source_file": null
+    }
+  ],
+  "proposed": [
+    {
+      "chunk_id": "synthetic_S00000",
+      "document_id": "synthetic",
+      "pipeline": "structure_aware",
+      "company": null,
+      "year": null,
+      "document_type": null,
+      "chunk_type": "paragraph",
+      "text": "فروش شرکت در سال 1403 کاهش یافته است.",
+      "retrieval_text": "گزارش مدیریت > فروش\n\nفروش شرکت در سال 1403 کاهش یافته است.",
+      "heading_path": [
+        "گزارش مدیریت",
+        "فروش"
+      ],
+      "section": "فروش",
+      "subsection": null,
+      "token_count": 12,
+      "source_block_ids": [
+        2
+      ],
+      "source_file": "synthetic.md",
+      "table_part": null,
+      "table_parts": null
+    },
+    {
+      "chunk_id": "synthetic_S00001",
+      "document_id": "synthetic",
+      "pipeline": "structure_aware",
+      "company": null,
+      "year": null,
+      "document_type": null,
+      "chunk_type": "table",
+      "text": "| سال | مبلغ |\n| --- | ---: |\n| 1403 | 1,200 |",
+      "retrieval_text": "گزارش مدیریت > فروش\n\n| سال | مبلغ |\n| --- | ---: |\n| 1403 | 1,200 |",
+      "heading_path": [
+        "گزارش مدیریت",
+        "فروش"
+      ],
+      "section": "فروش",
+      "subsection": null,
+      "token_count": 19,
+      "source_block_ids": [
+        3
+      ],
+      "source_file": "synthetic.md",
+      "table_part": null,
+      "table_parts": null
+    },
+    {
+      "chunk_id": "synthetic_S00002",
+      "document_id": "synthetic",
+      "pipeline": "structure_aware",
+      "company": null,
+      "year": null,
+      "document_type": null,
+      "chunk_type": "list",
+      "text": "- هزینه مالی\n- نرخ ارز",
+      "retrieval_text": "گزارش مدیریت > ریسک\n\n- هزینه مالی\n- نرخ ارز",
+      "heading_path": [
+        "گزارش مدیریت",
+        "ریسک"
+      ],
+      "section": "ریسک",
+      "subsection": null,
+      "token_count": 10,
+      "source_block_ids": [
+        5
+      ],
+      "source_file": "synthetic.md",
+      "table_part": null,
+      "table_parts": null
+    }
+  ],
+  "representations": {
+    "baseline": "گزارش مدیریت فروش فروش شرکت در سال 1403 کاهش یافته است. سال",
+    "proposed": "گزارش مدیریت > فروش\n\nفروش شرکت در سال 1403 کاهش یافته است."
+  },
+  "evidence": [
+    {
+      "evidence_id": "E1",
+      "rank": 1,
+      "chunk_id": "synthetic_S00000",
+      "document_id": "synthetic",
+      "text": "فروش شرکت در سال 1403 کاهش یافته است.",
+      "chunk_type": "paragraph",
+      "heading_path": [
+        "گزارش مدیریت",
+        "فروش"
+      ],
+      "company": null,
+      "year": null,
+      "section": "فروش",
+      "subsection": null,
+      "retrieval_score": 1.0,
+      "source_file": "synthetic.md",
+      "document_title": null,
+      "report_type": null
+    },
+    {
+      "evidence_id": "E2",
+      "rank": 2,
+      "chunk_id": "synthetic_S00001",
+      "document_id": "synthetic",
+      "text": "| سال | مبلغ |\n| --- | ---: |\n| 1403 | 1,200 |",
+      "chunk_type": "table",
+      "heading_path": [
+        "گزارش مدیریت",
+        "فروش"
+      ],
+      "company": null,
+      "year": null,
+      "section": "فروش",
+      "subsection": null,
+      "retrieval_score": 0.5,
+      "source_file": "synthetic.md",
+      "document_title": null,
+      "report_type": null
+    },
+    {
+      "evidence_id": "E3",
+      "rank": 3,
+      "chunk_id": "synthetic_S00002",
+      "document_id": "synthetic",
+      "text": "- هزینه مالی\n- نرخ ارز",
+      "chunk_type": "list",
+      "heading_path": [
+        "گزارش مدیریت",
+        "ریسک"
+      ],
+      "company": null,
+      "year": null,
+      "section": "ریسک",
+      "subsection": null,
+      "retrieval_score": 0.3333333333333333,
+      "source_file": "synthetic.md",
+      "document_title": null,
+      "report_type": null
+    }
+  ],
+  "extraction": {
+    "query": "فروش؟",
+    "explicit": [
+      {
+        "claim": "فروش کاهش یافته است.",
+        "evidence_ids": [
+          "E1"
+        ],
+        "confidence": 0.9,
+        "basis": "بیان مستقیم"
+      }
+    ],
+    "implicit": [],
+    "latent": [],
+    "insufficient_evidence": false,
+    "notes": ""
+  },
+  "dual_retrieval": {
+    "original_query": "فروش؟",
+    "normalized_query": "فروش؟",
+    "top_k": 3,
+    "baseline": [
+      {
+        "rank": 1,
+        "score": 1.0,
+        "vector_id": 0,
+        "chunk": {
+          "chunk_id": "synthetic_S00000",
+          "document_id": "synthetic",
+          "pipeline": "structure_aware",
+          "company": null,
+          "year": null,
+          "document_type": null,
+          "chunk_type": "paragraph",
+          "text": "فروش شرکت در سال 1403 کاهش یافته است.",
+          "retrieval_text": "گزارش مدیریت > فروش\n\nفروش شرکت در سال 1403 کاهش یافته است.",
+          "heading_path": [
+            "گزارش مدیریت",
+            "فروش"
+          ],
+          "section": "فروش",
+          "subsection": null,
+          "token_count": 12,
+          "source_block_ids": [
+            2
+          ],
+          "source_file": "synthetic.md",
+          "table_part": null,
+          "table_parts": null
+        }
+      },
+      {
+        "rank": 2,
+        "score": 0.5,
+        "vector_id": 1,
+        "chunk": {
+          "chunk_id": "synthetic_S00001",
+          "document_id": "synthetic",
+          "pipeline": "structure_aware",
+          "company": null,
+          "year": null,
+          "document_type": null,
+          "chunk_type": "table",
+          "text": "| سال | مبلغ |\n| --- | ---: |\n| 1403 | 1,200 |",
+          "retrieval_text": "گزارش مدیریت > فروش\n\n| سال | مبلغ |\n| --- | ---: |\n| 1403 | 1,200 |",
+          "heading_path": [
+            "گزارش مدیریت",
+            "فروش"
+          ],
+          "section": "فروش",
+          "subsection": null,
+          "token_count": 19,
+          "source_block_ids": [
+            3
+          ],
+          "source_file": "synthetic.md",
+          "table_part": null,
+          "table_parts": null
+        }
+      },
+      {
+        "rank": 3,
+        "score": 0.3333333333333333,
+        "vector_id": 2,
+        "chunk": {
+          "chunk_id": "synthetic_S00002",
+          "document_id": "synthetic",
+          "pipeline": "structure_aware",
+          "company": null,
+          "year": null,
+          "document_type": null,
+          "chunk_type": "list",
+          "text": "- هزینه مالی\n- نرخ ارز",
+          "retrieval_text": "گزارش مدیریت > ریسک\n\n- هزینه مالی\n- نرخ ارز",
+          "heading_path": [
+            "گزارش مدیریت",
+            "ریسک"
+          ],
+          "section": "ریسک",
+          "subsection": null,
+          "token_count": 10,
+          "source_block_ids": [
+            5
+          ],
+          "source_file": "synthetic.md",
+          "table_part": null,
+          "table_parts": null
+        }
+      }
+    ],
+    "proposed": [
+      {
+        "rank": 1,
+        "score": 1.0,
+        "vector_id": 0,
+        "chunk": {
+          "chunk_id": "synthetic_S00000",
+          "document_id": "synthetic",
+          "pipeline": "structure_aware",
+          "company": null,
+          "year": null,
+          "document_type": null,
+          "chunk_type": "paragraph",
+          "text": "فروش شرکت در سال 1403 کاهش یافته است.",
+          "retrieval_text": "گزارش مدیریت > فروش\n\nفروش شرکت در سال 1403 کاهش یافته است.",
+          "heading_path": [
+            "گزارش مدیریت",
+            "فروش"
+          ],
+          "section": "فروش",
+          "subsection": null,
+          "token_count": 12,
+          "source_block_ids": [
+            2
+          ],
+          "source_file": "synthetic.md",
+          "table_part": null,
+          "table_parts": null
+        }
+      },
+      {
+        "rank": 2,
+        "score": 0.5,
+        "vector_id": 1,
+        "chunk": {
+          "chunk_id": "synthetic_S00001",
+          "document_id": "synthetic",
+          "pipeline": "structure_aware",
+          "company": null,
+          "year": null,
+          "document_type": null,
+          "chunk_type": "table",
+          "text": "| سال | مبلغ |\n| --- | ---: |\n| 1403 | 1,200 |",
+          "retrieval_text": "گزارش مدیریت > فروش\n\n| سال | مبلغ |\n| --- | ---: |\n| 1403 | 1,200 |",
+          "heading_path": [
+            "گزارش مدیریت",
+            "فروش"
+          ],
+          "section": "فروش",
+          "subsection": null,
+          "token_count": 19,
+          "source_block_ids": [
+            3
+          ],
+          "source_file": "synthetic.md",
+          "table_part": null,
+          "table_parts": null
+        }
+      },
+      {
+        "rank": 3,
+        "score": 0.3333333333333333,
+        "vector_id": 2,
+        "chunk": {
+          "chunk_id": "synthetic_S00002",
+          "document_id": "synthetic",
+          "pipeline": "structure_aware",
+          "company": null,
+          "year": null,
+          "document_type": null,
+          "chunk_type": "list",
+          "text": "- هزینه مالی\n- نرخ ارز",
+          "retrieval_text": "گزارش مدیریت > ریسک\n\n- هزینه مالی\n- نرخ ارز",
+          "heading_path": [
+            "گزارش مدیریت",
+            "ریسک"
+          ],
+          "section": "ریسک",
+          "subsection": null,
+          "token_count": 10,
+          "source_block_ids": [
+            5
+          ],
+          "source_file": "synthetic.md",
+          "table_part": null,
+          "table_parts": null
+        }
+      }
+    ]
+  },
+  "citations": {
+    "query": "فروش؟",
+    "method": "proposed",
+    "traceability_relation": "Concept -> Evidence -> Section -> Document",
+    "total_findings": 1,
+    "items": [
+      {
+        "finding_id": "F1",
+        "level": "explicit",
+        "information_type": "اطلاعات صریح",
+        "concept": "فروش کاهش یافته است.",
+        "concept_source": "statement_fallback",
+        "statement": "فروش کاهش یافته است.",
+        "confidence": "0.9",
+        "evidence_ids": [
+          "E1"
+        ],
+        "evidence_count": 1,
+        "evidence": [
+          {
+            "evidence_id": "E1",
+            "resolved": true,
+            "rank": 1,
+            "chunk_id": "synthetic_S00000",
+            "document_id": "synthetic",
+            "company": null,
+            "year": null,
+            "section": "فروش",
+            "subsection": null,
+            "heading_path": [
+              "گزارش مدیریت",
+              "فروش"
+            ],
+            "path_display": "گزارش مدیریت > فروش",
+            "chunk_type": "paragraph",
+            "retrieval_score": 1.0,
+            "source_file": "synthetic.md",
+            "document_title": null,
+            "report_type": null,
+            "source_label": "synthetic.md",
+            "snippet": "فروش شرکت در سال 1403 کاهش یافته است.",
+            "full_text": "فروش شرکت در سال 1403 کاهش یافته است."
+          }
+        ]
+      }
+    ]
+  },
+  "faiss": [
+    {
+      "rank": 1,
+      "score": 0.800000011920929,
+      "vector_id": 1,
+      "chunk": {
+        "chunk_id": "c2"
+      }
+    },
+    {
+      "rank": 2,
+      "score": 0.6000000238418579,
+      "vector_id": 0,
+      "chunk": {
+        "chunk_id": "c1"
+      }
+    }
+  ],
+  "metrics": {
+    "precision@3": 0.3333333333333333,
+    "recall@3": 1.0,
+    "mrr": 1.0,
+    "evidence_hit": 1.0,
+    "first_relevant_rank": 1,
+    "matched_gold_count": 1,
+    "gold_evidence_count": 1,
+    "retrieval_details": [
+      {
+        "rank": 1,
+        "chunk_id": "synthetic_S00000",
+        "document_id": "synthetic",
+        "relevant": true,
+        "matched_gold_indexes": [
+          0
+        ]
+      },
+      {
+        "rank": 2,
+        "chunk_id": "synthetic_S00001",
+        "document_id": "synthetic",
+        "relevant": false,
+        "matched_gold_indexes": []
+      },
+      {
+        "rank": 3,
+        "chunk_id": "synthetic_S00002",
+        "document_id": "synthetic",
+        "relevant": false,
+        "matched_gold_indexes": []
+      }
+    ]
+  },
+  "lexical_f1": 0.8,
+  "citation_validity": 1.0
+}

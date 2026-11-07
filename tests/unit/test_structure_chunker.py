@@ -1,14 +1,14 @@
-from src.chunk_models import (
+from codal_rag.models import (
     DocumentMetadata,
 )
 
-from src.structure_chunker import (
+from codal_rag.chunking.structure import (
     StructureChunkerConfig,
     structure_aware_chunking,
 )
 
-from src.tokenizer_utils import (
-    TokenizerWrapper,
+from codal_rag.chunking.tokenization import (
+    WhitespaceTokenizer,
 )
 
 
@@ -40,7 +40,7 @@ metadata = DocumentMetadata(
 )
 
 
-tokenizer = TokenizerWrapper()
+tokenizer = WhitespaceTokenizer()
 
 
 config = StructureChunkerConfig(
