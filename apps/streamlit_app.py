@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+from dataclasses import replace
 
 import streamlit as st
 
@@ -40,6 +41,13 @@ def main() -> None:
         return
     if cfg.embedding.backend == 'hash':
         st.warning('حالت smoke: امتیازها برای آزمون اتصال مراحل‌اند و معیار کیفیت معنایی نیستند.')
+    adaptive = st.sidebar.checkbox('فعال‌سازی بازیابی هدایت‌شده با کمبود شواهد (EGAR)', value=cfg.egar.enabled)
+    retrieval_mode = st.sidebar.selectbox('روش بازیابی', ['dense', 'hybrid', 'bm25'],
+                                         index=['dense', 'hybrid', 'bm25'].index(cfg.retrieval.mode),
+                                         format_func=lambda value: {'dense': 'معنایی', 'hybrid': 'ترکیبی', 'bm25': 'واژگانی (BM25)'}[value])
+    cfg = replace(cfg, egar=replace(cfg.egar, enabled=adaptive),
+                  retrieval=replace(cfg.retrieval, mode=retrieval_mode))
+    inspect = st.sidebar.checkbox('نمای پژوهشی', value=False)
     if st.sidebar.button('بارگذاری دوباره ایندکس‌ها'):
         load_engine.clear()
     with st.form('retrieval_form'):
@@ -65,6 +73,34 @@ def main() -> None:
             st.download_button('دریافت نتایج JSON',
                 json.dumps(engine.result_payload(result), ensure_ascii=False, indent=2),
                 file_name='retrieval.json', mime='application/json')
+            if adaptive:
+                from codal_rag.pipelines.extract import extract_retrieval
+                with st.spinner('بررسی کفایت شواهد...'):
+                    answer = extract_retrieval(engine.result_payload(result), 'proposed', cfg, engine=engine)
+                final = answer['egar']['final_sufficiency_decision']
+                st.subheader('نتیجهٔ بررسی شواهد')
+                status_label = {'sufficient': 'کافی', 'partially_sufficient': 'نسبتاً کافی',
+                                'insufficient': 'ناکافی', 'contradictory': 'متناقض',
+                                'unverifiable': 'قابل تأیید نیست'}[final['sufficiency_status']]
+                st.write(f"کفایت شواهد: {status_label} · دور تکمیلی: {answer['egar']['iteration_count']}")
+                if answer['extraction']['insufficient_evidence']:
+                    reason = answer['egar']['stop_reason']
+                    message = {'ambiguous_scope': 'شرکت و دورهٔ گزارش روشن نیست؛ آن‌ها را در سؤال مشخص کنید.',
+                               'service_or_validation_failure': 'بررسی شواهد به‌دلیل خطای سرویس یا خروجی نامعتبر کامل نشد.',
+                               'budget_or_timeout': 'مهلت یا بودجهٔ بررسی تمام شد؛ پاسخی تأیید نشد.',
+                               'contradictory_evidence': 'شواهد متناقض است؛ نتیجه‌ای تأیید نشد.'}
+                    st.info(message.get(reason, 'شواهد کافی برای پاسخ مستند فراهم نشد.'))
+                for level in ('explicit', 'implicit', 'latent'):
+                    for claim in answer['extraction'][level]:
+                        st.write(claim['claim'])
+                        st.caption(' · '.join(claim.get('conceptual_labels', [])) + ' | ' + ', '.join(claim['evidence_ids']))
+                with st.expander('شواهد و ارجاع‌ها'):
+                    st.json(answer['citation_view'])
+                if inspect:
+                    with st.expander('کمبود شواهد و جست‌وجوهای تکمیلی'):
+                        st.json(answer['egar'])
+                st.download_button('دریافت پاسخ و شواهد JSON', json.dumps(answer, ensure_ascii=False, indent=2),
+                                   file_name='extraction.json', mime='application/json')
         except (ValueError, OSError, RuntimeError) as exc:
             st.error(str(exc))
     with st.expander('نمایش ارجاع‌های خروجی استخراج'):

@@ -11,6 +11,8 @@ from codal_rag.indexing.faiss_store import FaissVectorStore
 from codal_rag.models import DualRetrievalResult
 from codal_rag.normalization.persian import NormalizerConfig, normalize_plain_text
 from codal_rag.storage.json_io import load_json, save_json
+from codal_rag.retrieval.sparse import BM25, reciprocal_rank_fusion
+from codal_rag.retrieval.scope import RetrievalScope, canonical
 
 
 class DualRetrievalEngine:
@@ -42,6 +44,50 @@ class DualRetrievalEngine:
             if store.dimension != self.embedding_model.dimension or store.dimension != baseline['embedding_dimension']:
                 raise ValueError("Index dimension does not match the embedding model; rebuild")
         self.index_config = {"baseline": baseline, "proposed": proposed}
+        self._sparse = {}
+
+    def catalog(self, method: str = "proposed") -> list[dict]:
+        return list(self._store(method).metadata.values())
+
+    def _store(self, method):
+        if method not in {"baseline", "proposed"}:
+            raise ValueError("Method must be baseline or proposed")
+        return getattr(self, f"{method}_store")
+
+    def _search_method(self, query, vector, method, top_k, scope=None, section_hints=()):
+        store = self._store(method)
+        allowed = None if scope is None else {i for i, c in store.metadata.items() if scope.matches(c)}
+        # Hints choose actual matching headings, with a recorded global-in-scope
+        # fallback when no heading matches. Identity constraints are never relaxed.
+        if section_hints:
+            sections = {i for i, c in store.metadata.items()
+                        if (allowed is None or i in allowed) and any(
+                            canonical(h) in canonical(" ".join(c.get("heading_path") or []))
+                            for h in section_hints if canonical(h))}
+            if sections:
+                allowed = sections
+        r = self.config.retrieval
+        depth = top_k if r.mode == "dense" else max(top_k, r.candidate_k)
+        dense = store.search(vector, depth, allowed_ids=allowed) if r.mode != "bm25" else []
+        if r.mode == "dense":
+            return dense
+        if method not in self._sparse:
+            self._sparse[method] = BM25(store.metadata, r.bm25_k1, r.bm25_b)
+        sparse = self._sparse[method].search(query, depth, allowed)
+        if r.mode == "bm25":
+            return sparse[:top_k]
+        return reciprocal_rank_fusion({"dense": dense, "bm25": sparse}, top_k, r.rrf_k)
+
+    def search_method(self, query: str, method: str, top_k: int | None = None, *,
+                      scope: RetrievalScope | None = None, section_hints=()) -> list[dict]:
+        top_k = self.config.top_k if top_k is None else top_k
+        if type(top_k) is not int or top_k <= 0 or not isinstance(query, str) or not query.strip():
+            raise ValueError("A nonempty query and positive top_k are required")
+        normalized = self.normalize_query(query)
+        if not normalized.strip():
+            raise ValueError('Query is empty after normalization')
+        vector = None if self.config.retrieval.mode == "bm25" else self.embedding_model.encode_query(normalized)
+        return self._search_method(normalized, vector, method, top_k, scope, section_hints)
 
     @staticmethod
     def read_index_config(directory: Path) -> dict:
@@ -57,7 +103,8 @@ class DualRetrievalEngine:
     def normalize_query(query: str) -> str:
         return normalize_plain_text(query, NormalizerConfig())
 
-    def search(self, query: str, top_k: int | None = None) -> DualRetrievalResult:
+    def search(self, query: str, top_k: int | None = None, *,
+               scope: RetrievalScope | None = None) -> DualRetrievalResult:
         top_k = self.config.top_k if top_k is None else top_k
         if type(top_k) is not int or top_k <= 0:
             raise ValueError("top_k must be a positive integer")
@@ -66,14 +113,22 @@ class DualRetrievalEngine:
         normalized = self.normalize_query(query)
         if not normalized.strip():
             raise ValueError("Query is empty after normalization")
-        vector = self.embedding_model.encode_query(normalized)
-        return DualRetrievalResult(query, normalized, top_k,
-            self.baseline_store.search(vector, top_k), self.proposed_store.search(vector, top_k))
+        vector = None if self.config.retrieval.mode == "bm25" else self.embedding_model.encode_query(normalized)
+        result = DualRetrievalResult(query, normalized, top_k,
+            self._search_method(normalized, vector, "baseline", top_k, scope),
+            self._search_method(normalized, vector, "proposed", top_k, scope))
+        if scope is not None:
+            result.scope = scope.to_dict()
+        return result
 
     def result_payload(self, result: DualRetrievalResult) -> dict:
-        return {**asdict(result), "schema_version": 1,
+        payload = {**asdict(result), "schema_version": 1,
                 "embedding_model": self.config.embedding.model,
                 "index_config": self.index_config}
+        if self.config.retrieval.mode != "dense" or hasattr(result, "scope"):
+            payload.update(schema_version=2, retrieval_configuration=asdict(self.config.retrieval),
+                           scope=getattr(result, "scope", None))
+        return payload
 
     def save_result(self, result: DualRetrievalResult, path: str | Path | None = None) -> Path:
         stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")

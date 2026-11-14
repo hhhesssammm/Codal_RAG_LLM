@@ -554,7 +554,7 @@ def retrieval_to_evidence(
 
 def build_evidence_context(
     evidence_items: list[EvidenceItem],
-    max_chars_per_evidence: int = 6000,
+    max_chars_per_evidence: int | None = 6000,
 ) -> str:
     """
     Evidenceها را به یک Context ساختاریافته
@@ -594,7 +594,7 @@ def build_evidence_context(
         text = evidence.text
 
         if (
-            len(text)
+            max_chars_per_evidence is not None and len(text)
             > max_chars_per_evidence
         ):
 

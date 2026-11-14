@@ -46,13 +46,22 @@ class FaissVectorStore:
         self.metadata.update({str(int(i)): dict(record) for i, record in zip(ids, records)})
         self.next_id += len(records)
 
-    def search(self, query_embedding: np.ndarray, top_k: int = 5) -> list[dict]:
+    def search(self, query_embedding: np.ndarray, top_k: int = 5, *,
+               allowed_ids: set[str] | None = None) -> list[dict]:
         if type(top_k) is not int or top_k <= 0:
             raise ValueError("top_k must be a positive integer")
         query = self._matrix(query_embedding, query=True)
         if not self.size:
             return []
-        scores, ids = self.index.search(query, min(top_k, self.size))
+        if allowed_ids is None:
+            scores, ids = self.index.search(query, min(top_k, self.size))
+        else:
+            selected = sorted(int(i) for i in allowed_ids if i in self.metadata)
+            if not selected:
+                return []
+            params = faiss.SearchParameters()
+            params.sel = faiss.IDSelectorBatch(np.asarray(selected, dtype=np.int64))
+            scores, ids = self.index.search(query, min(top_k, len(selected)), params=params)
         results = []
         for rank, (score, vector_id) in enumerate(zip(scores[0], ids[0]), 1):
             key = str(int(vector_id))

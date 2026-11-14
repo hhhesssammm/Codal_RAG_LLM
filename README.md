@@ -4,6 +4,19 @@ An installable Persian financial-document RAG experiment package. It compares fi
 
 The default embedding model remains `intfloat/multilingual-e5-base`. No API credentials or document datasets are included. The deterministic smoke backend checks plumbing; its scores are **not** research results.
 
+Optional **Evidence-Gap-Guided Adaptive Retrieval (EGAR)** adds bounded, scoped searches
+for missing complementary evidence. It is disabled by default. Dense, Persian BM25 and
+hybrid RRF retrieval support the approved A-D experiments; D versus C remains the main
+chunking comparison. D versus D+EGAR is a separate ablation. See the [EGAR guide](docs/egar.md),
+[audit](docs/egar-audit.md) and [delivery status](docs/egar-delivery.md).
+
+```powershell
+# Reproducible synthetic demonstration; no API or model download.
+python -m codal_rag egar-demo --output data/egar-demo.json
+# Create the unfilled approved 260-question annotation plan.
+python -m codal_rag codalbench-template --output data/codalbench.json
+```
+
 ## Install on Windows (PowerShell)
 
 Python 3.10–3.13 is declared supported; Python 3.12 is recommended and was tested on Linux. Native Windows execution and real model/API integration still need verification on your machine.
@@ -11,7 +24,7 @@ Python 3.10–3.13 is declared supported; Python 3.12 is recommended and was tes
 ```powershell
 git clone https://github.com/hhhesssammm/Codal_RAG_LLM.git
 cd Codal_RAG_LLM
-git switch fix/complete-rag-migration
+git switch master
 py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install --upgrade pip
 .\.venv\Scripts\python.exe -m pip install -e ".[dev,ui]"
@@ -64,7 +77,7 @@ Precedence, lowest to highest:
 1. Typed, validated defaults in `codal_rag.config`.
 2. YAML files explicitly listed with repeated `--config`, in their supplied order. If none are supplied, `CODAL_CONFIG` may identify one YAML file.
 3. `CODAL_<SECTION>_<FIELD>` environment variables, for example `CODAL_EMBEDDING_MODEL`, `CODAL_LLM_TIMEOUT`, `CODAL_CHUNKING_MAX_TOKENS`, `CODAL_EVALUATION_SEMANTIC_ENABLED`. Top-level fields use `CODAL_TOP_K`, `CODAL_PROJECT_ROOT`, etc.
-4. Explicit `--root`, `--mode`, and `--top-k` CLI overrides.
+4. Explicit `--root`, `--mode`, `--top-k`, `--retrieval-mode`, and `--egar`/`--no-egar` CLI overrides.
 
 `project_root` in YAML is relative to that YAML file's directory. All generated data paths are relative to `project_root/data_dir` (an absolute `data_dir` also works). Without configuration, the project root defaults to the current directory. Explicit CLI `--input`, `--output`, and other file arguments are relative to the shell's current directory, or may be absolute. Installed imports do not depend on either directory.
 
@@ -89,6 +102,12 @@ Global options appear **before** the subcommand. Both `codal-rag` and `python -m
 | `eval-template` | `--output JSON` | Blank 20 Explicit / 15 Implicit / 15 Latent questions |
 | `batch` | `--questions JSON [--output DIR]` | Retrieval and extraction for both methods per question |
 | `evaluate` | `[--runs DIR] [--output JSON]` | Aggregate, per-question, and by-type evaluation |
+| `answer` | `--query TEXT --output JSON [--scope JSON]` | Retrieve/extract with optional EGAR |
+| `egar-demo` | `--output JSON` | Offline synthetic adaptive example |
+| `codalbench-template` | `--output JSON` | Unfilled approved 260-question plan |
+| `validate-benchmark` | `--dataset JSON [--full-protocol]` | Validate annotations, company splits and plan |
+| `experiment` | `--dataset JSON --arms D D+EGAR --output DIR` | Common v2 prompt/budget, separate research arms |
+| `research-evaluate` | `--runs DIR --dataset JSON --output JSON [--adjudications JSON]` | Coverage, independent claim judgments and clustered bootstrap |
 
 `extract --response-file JSON` explicitly replays a recorded mock LLM response for offline testing; outputs record that the LLM was mocked. It never silently substitutes for a live provider. `retrieve` and `batch` are comparison workflows and require both indexes, even if you previously built one method with `--mode`.
 

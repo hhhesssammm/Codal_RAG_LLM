@@ -23,6 +23,7 @@ def run_batch(questions_path, config, *, engine=None, llm_client=None, output_di
         save_json(payload, question_dir / 'retrieval.json')
         for method in ('baseline', 'proposed'):
             extract_retrieval(payload, method, config, llm_client=llm_client,
+                              engine=engine,
                               output=question_dir / f'{method}.json')
     manifest['complete'] = True
     save_json(manifest, directory / 'run.json')

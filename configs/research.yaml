@@ -1,0 +1,6 @@
+# Common generation contract and final context budget for ALL A-D/EGAR arms.
+extraction:
+  schema_version: 2
+  max_evidence_tokens: 4096
+egar:
+  enabled: false
