@@ -1,0 +1,7 @@
+# Same BM25/RRF settings for fixed and structure-aware chunks.
+retrieval:
+  mode: hybrid
+  candidate_k: 50
+  rrf_k: 60
+  bm25_k1: 1.5
+  bm25_b: 0.75

@@ -268,6 +268,8 @@ def evaluate_runs(runs_dir: str | Path, config: AppConfig, *, output=None,
         row = {key: gold[key] for key in ('id', 'question', 'type')}
         for method in ('baseline', 'proposed'):
             extraction = artifacts[method]
+            if extraction.get('egar', {}).get('enabled'):
+                raise ValueError('Adaptive runs require research-evaluate; historical metrics are unchanged')
             if extraction.get('query') != gold['question']:
                 raise ValueError(f"Extraction query differs from gold question {gold['id']}")
             # Evidence IDs alone do not establish provenance: verify saved document/chunk/text.

@@ -25,6 +25,7 @@ class LLMClient:
                             timeout=self.config.timeout, max_retries=self.config.max_retries)
         self.client = client
         self.model = self.config.model
+        self.last_usage = None
 
     @staticmethod
     def _parse_json(text: str) -> dict:
@@ -47,6 +48,7 @@ class LLMClient:
         return value
 
     def generate_json(self, system_prompt: str, user_prompt: str) -> dict:
+        self.last_usage = None
         if not system_prompt.strip() or not user_prompt.strip():
             raise ValueError("Prompts cannot be empty")
         try:
@@ -65,4 +67,8 @@ class LLMClient:
             raise LLMError("LLM output hit its token limit; increase max_output_tokens or reduce evidence")
         if getattr(choice.message, "refusal", None):
             raise LLMError("LLM provider declined the extraction request")
+        usage = getattr(response, "usage", None)
+        if usage is not None:
+            self.last_usage = {"prompt_tokens": getattr(usage, "prompt_tokens", None),
+                               "completion_tokens": getattr(usage, "completion_tokens", None)}
         return self._parse_json(choice.message.content)

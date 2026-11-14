@@ -1,5 +1,11 @@
 # Evaluation protocol
 
+This page specifies the unchanged **legacy evaluator**. The approved 260-question
+CodalBench contracts, exact passage coverage, independent claim adjudication and
+10,000-sample paired company bootstrap are implemented separately; see [EGAR](egar.md).
+Use `research-evaluate` for adaptive runs. Historical lexical/similarity metrics
+are not silently redefined as factual correctness.
+
 The runner restores Demo's per-question comparison and aggregation. The question type selects the Explicit, Implicit, or Latent claims used for answer/grounding metrics. Both methods use the same question, gold annotations, retrieval depth, and thresholds. This is an evaluation mechanism, not evidence of a quality improvement.
 
 ## Retrieval relevance and metrics

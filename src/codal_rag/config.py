@@ -60,6 +60,39 @@ class EvaluationConfig:
 
 
 @dataclass(frozen=True)
+class RetrievalConfig:
+    mode: str = "dense"
+    candidate_k: int = 50
+    rrf_k: int = 60
+    bm25_k1: float = 1.5
+    bm25_b: float = 0.75
+
+
+@dataclass(frozen=True)
+class ExtractionConfig:
+    schema_version: int = 1
+    # v1 remains unbounded for historical compatibility. v2 always uses this cap.
+    max_evidence_tokens: int = 4096
+
+
+@dataclass(frozen=True)
+class EGARConfig:
+    enabled: bool = False
+    judge: str = "llm"
+    max_iterations: int = 2
+    max_queries_per_iteration: int = 2
+    supplementary_top_k: int = 5
+    max_candidates: int = 40
+    max_llm_calls: int = 6
+    timeout_seconds: float = 120.0
+    call_timeout_seconds: float = 30.0
+    max_retries: int = 0
+    minimum_sufficiency: str = "sufficient"
+    input_cost_per_million: float = 0.0
+    output_cost_per_million: float = 0.0
+
+
+@dataclass(frozen=True)
 class AppConfig:
     project_root: Path = field(default_factory=lambda: Path.cwd().resolve())
     data_dir: str = "data"
@@ -70,6 +103,9 @@ class AppConfig:
     embedding: EmbeddingConfig = field(default_factory=EmbeddingConfig)
     llm: LLMConfig = field(default_factory=LLMConfig)
     evaluation: EvaluationConfig = field(default_factory=EvaluationConfig)
+    retrieval: RetrievalConfig = field(default_factory=RetrievalConfig)
+    extraction: ExtractionConfig = field(default_factory=ExtractionConfig)
+    egar: EGARConfig = field(default_factory=EGARConfig)
 
     def path(self, *parts: str) -> Path:
         return self.project_root / self.data_dir / Path(*parts)
@@ -84,7 +120,8 @@ class AppConfig:
 
 
 SECTIONS = {"chunking": ChunkingConfig, "embedding": EmbeddingConfig,
-            "llm": LLMConfig, "evaluation": EvaluationConfig}
+            "llm": LLMConfig, "evaluation": EvaluationConfig,
+            "retrieval": RetrievalConfig, "extraction": ExtractionConfig, "egar": EGARConfig}
 
 
 def _merge(base: dict, update: dict, prefix: str = "") -> None:
@@ -153,6 +190,25 @@ def validate_config(cfg: AppConfig) -> AppConfig:
             raise ConfigurationError(f"evaluation.{name} must be in (0, 1]")
     if not cfg.data_dir.strip():
         raise ConfigurationError("data_dir cannot be empty")
+    r, a = cfg.retrieval, cfg.egar
+    if r.mode not in {"dense", "bm25", "hybrid"}:
+        raise ConfigurationError("retrieval.mode must be dense, bm25, or hybrid")
+    if r.candidate_k < cfg.top_k or r.rrf_k <= 0 or r.bm25_k1 <= 0 or not 0 <= r.bm25_b <= 1:
+        raise ConfigurationError("Invalid retrieval parameters (candidate_k must be >= top_k)")
+    if cfg.extraction.schema_version not in {1, 2} or cfg.extraction.max_evidence_tokens <= 0:
+        raise ConfigurationError("Use extraction schema_version 1 or 2 and a positive context budget")
+    if a.judge not in {"llm", "deterministic"} or a.minimum_sufficiency != "sufficient":
+        raise ConfigurationError("Use llm/deterministic judge; only sufficient evidence permits final claims")
+    if not 0 <= a.max_iterations <= 10 or not 0 <= a.max_retries <= 2:
+        raise ConfigurationError("EGAR iterations must be 0..10 and retries 0..2")
+    if any(v <= 0 for v in (a.max_queries_per_iteration, a.supplementary_top_k,
+                            a.max_candidates, a.max_llm_calls, a.timeout_seconds,
+                            a.call_timeout_seconds)):
+        raise ConfigurationError("EGAR budgets must be positive")
+    if a.input_cost_per_million < 0 or a.output_cost_per_million < 0:
+        raise ConfigurationError("Token prices must be nonnegative")
+    if a.enabled and cfg.top_k > a.max_candidates:
+        raise ConfigurationError('Initial top_k cannot exceed the EGAR candidate budget')
     return cfg
 
 

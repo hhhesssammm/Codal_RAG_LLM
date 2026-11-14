@@ -1,6 +1,6 @@
 # Data contracts
 
-All JSON is UTF-8, Unicode-preserving, and rejects non-finite values on save. Output schema version is `1` where a wrapper/manifest exists. Canonical dataclasses are in `models.py`.
+All JSON is UTF-8, Unicode-preserving, and rejects non-finite values on save. Historical output schema version is `1` where a wrapper/manifest exists. Canonical dataclasses are in `models.py`. Optional hybrid/scoped retrieval and v2 extraction/research contracts are documented in [EGAR](egar.md); v1 defaults and readers remain supported. New chunk snapshots may include optional `source_units` mapped to parsed Markdown blocks. These do not change retrieval/embedding text.
 
 ## Documents and chunks
 

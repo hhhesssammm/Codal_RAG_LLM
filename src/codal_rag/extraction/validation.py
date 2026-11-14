@@ -18,6 +18,7 @@ LEVEL_NAMES = (
 def validate_extraction(
     extraction: dict[str, Any],
     evidence_items: list[EvidenceItem],
+    *, allow_single_chunk_latent: bool = False,
 ) -> list[str]:
     """
     ساختار خروجی LLM و ارجاع به Evidenceها را بررسی می‌کند.
@@ -187,7 +188,7 @@ def validate_extraction(
 
                 unique_ids = {value for value in evidence_ids if isinstance(value, str)}
 
-                if len(unique_ids) < 2:
+                if len(unique_ids) < (1 if allow_single_chunk_latent else 2):
 
                     errors.append(
                         f"{prefix} must use "
@@ -245,11 +246,13 @@ def validate_extraction(
 def assert_valid_extraction(
     extraction: dict[str, Any],
     evidence_items: list[EvidenceItem],
+    *, allow_single_chunk_latent: bool = False,
 ) -> None:
 
     errors = validate_extraction(
         extraction,
         evidence_items,
+        allow_single_chunk_latent=allow_single_chunk_latent,
     )
 
     if errors:

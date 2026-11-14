@@ -49,10 +49,14 @@ class StructuredChunk:
 
     table_part: Optional[int] = None
     table_parts: Optional[int] = None
+    source_units: Optional[list[dict]] = None
 
 
     def to_dict(self):
-        return asdict(self)
+        result = asdict(self)
+        if self.source_units is None:
+            result.pop('source_units')
+        return result
 
 
 
@@ -154,6 +158,10 @@ class Chunk:
     year: Optional[str] = None
     document_type: Optional[str] = None
     source_file: Optional[str] = None
+    source_units: Optional[list[dict]] = None
 
     def to_dict(self) -> dict:
-        return asdict(self)
+        result = asdict(self)
+        if self.source_units is None:
+            result.pop('source_units')
+        return result

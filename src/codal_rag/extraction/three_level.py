@@ -8,7 +8,7 @@ from codal_rag.extraction.evidence import (
 )
 
 from codal_rag.llm.client import LLMClient
-from codal_rag.extraction.prompts import SYSTEM_PROMPT
+from codal_rag.extraction.prompts import SYSTEM_PROMPT, V2_EXTENSION
 from codal_rag.extraction.validation import assert_valid_extraction
 
 class ThreeLevelExtractor:
@@ -16,9 +16,11 @@ class ThreeLevelExtractor:
     def __init__(
         self,
         llm_client: LLMClient | None = None,
+        *, schema_version: int = 1,
     ):
 
         self.llm_client = llm_client
+        self.schema_version = schema_version
 
 
     def extract(
@@ -54,7 +56,7 @@ class ThreeLevelExtractor:
             raise ValueError("Evidence must be traceable to a document and chunk")
         evidence_context = (
             build_evidence_context(
-                evidence_items
+                evidence_items, max_chars_per_evidence=None if self.schema_version == 2 else 6000
             )
         )
 
@@ -81,12 +83,18 @@ class ThreeLevelExtractor:
 
         result = (
             (self.llm_client or LLMClient()).generate_json(
-                system_prompt=SYSTEM_PROMPT,
+                system_prompt=SYSTEM_PROMPT + (V2_EXTENSION if self.schema_version == 2 else ""),
                 user_prompt=user_prompt,
             )
         )
 
-        assert_valid_extraction(result, evidence_items)
+        assert_valid_extraction(result, evidence_items, allow_single_chunk_latent=self.schema_version == 2)
+        if self.schema_version == 2:
+            for level in ("explicit", "implicit", "latent"):
+                for claim in result[level]:
+                    labels = claim.get("conceptual_labels")
+                    if not isinstance(labels, list) or any(not isinstance(v, str) or not v.strip() for v in labels):
+                        raise ValueError("v2 claims require conceptual_labels (a list of nonempty labels, or [])")
         if result.get("query") != query:
             raise ValueError("Extraction query does not match the retrieval query")
         return result

@@ -1,5 +1,9 @@
 # Reproducible experiments
 
+For the approved A-D matrix and separate D/D+EGAR ablation, use the [EGAR experiment
+instructions](egar.md#windows-powershell--pycharm). The historical v1 commands and
+migration verification recorded below remain available and are not new EGAR results.
+
 1. Install the package and record Python/platform/dependency versions (`python -m pip freeze`). Use a fixed dataset, stable input root, and reviewed question annotations.
 2. Pin `embedding.model` and `embedding.revision` to the intended model/commit. Set identical normalization, prefixes and similarity for both methods. Record hardware; neural-model results are not guaranteed bitwise identical across devices/runtime versions.
 3. Use `build --input ...` in `mode: both`. Changing source contents or model settings requires rebuilding both indexes. Hashes check document content as well as IDs; same filenames do not establish an identical corpus.
