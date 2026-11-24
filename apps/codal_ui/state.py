@@ -34,7 +34,6 @@ def new_conversation(state):
 
 
 def clear_conversation(state):
-    state.conversations[state.current_conversation] = []
     # Fresh widget keys also clear the composer and the selected sources.
     del state.conversations[state.current_conversation]
     new_conversation(state)
