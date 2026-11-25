@@ -15,7 +15,7 @@
 .ci-mark i{display:block;width:3px;border-radius:1px;background:var(--ci-surface)}.ci-mark i:nth-child(1){height:7px}.ci-mark i:nth-child(2){height:13px}.ci-mark i:nth-child(3){height:18px}
 .ci-subtitle{font-size:.76rem;margin:.35rem 0 1.2rem}.ci-intro{max-width:48rem;color:var(--ci-muted);font-size:1.04rem;line-height:1.95}
 .stApp [data-testid="stForm"]{border:1px solid var(--ci-line);background:var(--ci-surface);border-radius:13px;padding:1.1rem 1.3rem}
-.stApp :is(input,textarea){color:var(--ci-ink)!important;caret-color:var(--ci-accent);direction:auto;unicode-bidi:plaintext;text-align:start}
+.stApp :is(input,textarea){color:var(--ci-ink)!important;caret-color:var(--ci-accent); unicode-bidi:plaintext;text-align:start}
 .stApp :is([data-baseweb="input"],[data-baseweb="textarea"],[data-baseweb="select"]>div,[data-testid="stNumberInputContainer"]){background:var(--ci-soft);color:var(--ci-ink);border-color:var(--ci-line)}
 .stApp textarea::placeholder{color:var(--ci-muted);opacity:1}
 .stApp button[kind],.stApp [data-testid="stDownloadButton"] button{background:var(--ci-surface);color:var(--ci-ink);border-color:var(--ci-line);border-radius:8px}
@@ -37,3 +37,17 @@
 .ci-table th{background:var(--ci-soft)}.ci-source{color:var(--ci-muted);overflow-wrap:anywhere}
 [role=listbox],[role=option]{direction:rtl;background:var(--ci-surface);color:var(--ci-ink)}
 @media(max-width:700px){[data-testid="stMainBlockContainer"],.main .block-container{padding:3.4rem 1rem 2.2rem}.stApp [data-testid="stForm"]{padding:.85rem}.stApp h1{font-size:1.8rem}.stApp [data-baseweb="tab-list"]{gap:.7rem}.ci-intro{font-size:.96rem}}
+.stApp [data-testid="stElementContainer"],.stApp [data-testid="stHeadingWithActionElements"]{text-align:start}
+.stApp button[kind*="primary" i] :is([data-testid="stMarkdownContainer"],p,span){color:var(--ci-surface)}
+.ci-intro{margin-block:0 .85rem}
+.stApp [data-testid="stSidebar"] [role="radiogroup"]{align-items:stretch}
+.stApp [data-testid="stSidebar"] [role="radiogroup"] label{width:100%;padding:.52rem .8rem}
+.stApp [data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked){box-shadow:inset -3px 0 var(--ci-accent)}
+.stApp [data-testid="stSidebar"] [role="radiogroup"] label>div:first-child{width:0;min-width:0;margin:0;opacity:0}
+.stApp [data-testid="stSidebar"] label:focus-within{outline:2px solid var(--ci-accent);outline-offset:1px}
+@media(min-width:769px){[data-testid="stAppViewContainer"]{flex-direction:row-reverse}[data-testid="stSidebar"]{border-left:1px solid var(--ci-line);border-right:0}}
+.stApp :is([data-testid="stSelectbox"],[data-testid="stMultiSelect"]) [role="group"],
+.stApp :is([data-testid="stTextInputRootElement"],[data-testid="stTextAreaRootElement"]),
+.stApp :is([data-testid="stTextInput"],[data-testid="stTextArea"]) :is(input,textarea){background-color:var(--ci-soft);color:var(--ci-ink)}
+.stApp [role=group] button,.stApp [data-testid="stHeader"] button{color:var(--ci-ink)}
+.stApp [data-testid="stFileUploaderDropzone"],.stApp [data-testid="stFileUploaderDropzone"] button,.stApp [data-testid="stCodeBlock"]{background:var(--ci-soft);color:var(--ci-ink)}

@@ -1,6 +1,7 @@
 import streamlit as st
 
-from ..analysis import STAGES, current_engine, execute
+from ..analysis import current_engine
+from ..jobs import submitted_run
 from ..components import RESULT_STATUS, choose_scope, intro, metadata, prose, result, source
 from ..presentation import comparison_text
 from ..safety import UIError, json_bytes, public
@@ -41,20 +42,14 @@ def render(cfg, research):
     if research and st.radio("نوع مقایسه", ["پاسخ و شواهد", "فقط بازیابی"], horizontal=True) == "فقط بازیابی":
         retrieval_only(cfg)
         return
-    with st.form("comparison_form"):
+    with st.form("comparison_form_" + (state.comparison or {}).get("id", "first")):
         question = st.text_area("پرسش مشترک", max_chars=8000, height=100, key="compare_question")
         methods = st.multiselect("روش‌های آزمایش", list(METHODS), default=list(METHODS), format_func=METHODS.get)
         submit = st.form_submit_button("اجرای مقایسه", type="primary")
-    scope = choose_scope(cfg, "compare")
+    scope = choose_scope(cfg, "compare") if any(m != "llm_only" for m in methods) else None
     st.caption("مدل و تنظیمات تولید مشترک‌اند. روش‌های RAG با همان رتبه‌بندی اولیه و قرارداد استخراج نسخهٔ ۲ اجرا می‌شوند. "
                "فقط EGAR بودجهٔ تکمیلی دارد. روش بدون RAG فقط متن پرسش را دریافت می‌کند.")
-    if submit:
-        indicator = st.empty()
-        try:
-            state.comparison = execute(question, methods, cfg, comparison=True, scope=scope,
-                notify=lambda m, s: indicator.info(METHODS[m] + " · " + STAGES[s]))
-        finally:
-            indicator.empty()
+    submitted_run(state, "comparison", submit, question, methods, cfg, scope)
     run = state.comparison
     if not run:
         return
@@ -67,11 +62,15 @@ def render(cfg, research):
         trace = out.get("egar", {})
         decision = trace.get("final_sufficiency_decision", {}).get("sufficiency_status")
         valid = out.get("citation_validation", {}).get("valid")
+        citations = ("معتبر" if out.get("citation_view", {}).get("items") else "بدون ارجاع") if valid else None
+        sufficiency = STATUS.get(decision)
+        if not sufficiency and out.get("extraction", {}).get("insufficient_evidence"):
+            sufficiency = "ناکافی طبق استخراج"
         table.append({"روش": METHODS[r["method"]], "وضعیت": RESULT_STATUS[r["status"]],
                       "زمان (ثانیه)": round(r["seconds"], 3), "قطعهٔ اولیه": len(r["initial"]) if "initial" in r else None,
                       "شواهد نهایی": len(out["evidence"]) if "evidence" in out else None,
                       "توکن ورودی": usage.get("prompt_tokens"), "توکن خروجی": usage.get("completion_tokens"),
-                      "اعتبار ساختاری": "معتبر" if valid else None, "کفایت": STATUS.get(decision),
+                      "اعتبار ساختاری": citations, "کفایت": sufficiency,
                       "دور تکمیلی": trace.get("iteration_count") if trace.get("enabled") else None})
     st.dataframe(table, hide_index=True, use_container_width=True)
     st.caption("زمان هر روش RAG شامل سهم کامل بازیابی اولیهٔ مشترک است. خط تیره یعنی اندازه‌گیری نشده یا نامرتبط. "

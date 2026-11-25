@@ -11,7 +11,9 @@ def appearance():
     for col, (label, key, choices) in zip(st.columns(2), [
             ("حالت نمایش", "mode", ["تحلیلگر", "پژوهشگر"]), ("پوسته", "theme", ["روشن", "تیره"])]):
         widget = "appearance_" + key
-        col.radio(label, choices, index=choices.index(state[key]), horizontal=True, key=widget,
+        if widget not in state:
+            state[widget] = state[key]
+        col.radio(label, choices, horizontal=True, key=widget,
                   on_change=lambda k=key, w=widget: state.update({k: state[w]}))
     st.caption("تغییر نما بلافاصله اعمال می‌شود. پیکربندی آزمایش و پاسخ‌های ذخیره‌شده به اجرای خود وابسته‌اند.")
 

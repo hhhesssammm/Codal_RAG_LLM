@@ -2,7 +2,8 @@ from hashlib import sha256
 
 import streamlit as st
 
-from ..analysis import STAGES, execute, index_version
+from ..analysis import index_version
+from ..jobs import submitted_run
 from ..components import choose_scope, error_box, intro, prose, result
 from ..presentation import saved_extraction
 from ..safety import MAX_UPLOAD, parse_object, problem
@@ -19,7 +20,7 @@ def render(cfg, research):
     intro("تحلیل هوشمند", "از گزارش‌های مالی کدال بپرسید و هر یافته را تا متن و جدول منبع دنبال کنید.")
     key = "assistant_" + cid
     query_key = key + "_question"
-    with st.form(key + "_form"):
+    with st.form(key + "_form_" + str(len(history))):
         question = st.text_area("پرسش شما", height=116, key=query_key, max_chars=8000,
                                 placeholder="دربارهٔ کدام تغییر، ریسک یا شاخص مالی می‌خواهید بدانید؟")
         submit = st.form_submit_button("تحلیل پرسش", type="primary")
@@ -31,20 +32,13 @@ def render(cfg, research):
     scope = choose_scope(cfg, key)
     if not index_version(cfg):
         st.info("برای تحلیل گزارش‌ها ابتدا ایندکس‌های ساده و ساختارآگاه را آماده کنید. وضعیت آن‌ها در مدیریت اسناد دیده می‌شود.")
-    if submit:
-        method = "egar" if cfg.egar.enabled else "proposed"
-        with st.empty().container():
-            indicator = st.empty()
-            try:
-                run = execute(question, [method], cfg, scope=scope, notify=lambda m, s: indicator.info(STAGES[s]))
-                history.append(run)
-                state[key + "_selected"] = run["id"]
-            finally:
-                indicator.empty()
+    method = "egar" if cfg.egar.enabled else "proposed"
+    submitted_run(state, cid, submit, question, [method], cfg, scope)
     if history:
         st.divider()
         by_id = {r["id"]: r for r in reversed(history)}
-        selected = st.selectbox("تاریخچهٔ پرسش‌ها", list(by_id), format_func=lambda k: by_id[k]["question"],
+        labels = {r["id"]: f"{i} · {r['question']}" for i, r in enumerate(history, 1)}
+        selected = st.selectbox("تاریخچهٔ پرسش‌ها", list(by_id), format_func=labels.__getitem__,
                                 key=key + "_selected")
         run = by_id[selected]
         method, record = next(iter(run["methods"].items()))
@@ -57,7 +51,8 @@ def render(cfg, research):
         right.button("پاک کردن این گفت‌وگو", key=key + "_clear", on_click=clear_conversation, args=(state,))
         previous = [k for k, values in state.conversations.items() if k != cid and values]
         if previous:
-            old = st.selectbox("گفت‌وگوهای پیشین", previous, format_func=lambda k: state.conversations[k][0]["question"])
+            titles = {k: f"{i} · {state.conversations[k][0]['question']}" for i, k in enumerate(previous, 1)}
+            old = st.selectbox("گفت‌وگوهای پیشین", previous, format_func=titles.__getitem__)
             st.button("باز کردن گفت‌وگو", on_click=lambda: state.update(current_conversation=old))
         uploaded = st.file_uploader("بازخوانی خروجی استخراج (JSON)", type="json", key=key + "_upload")
         if uploaded:
@@ -67,7 +62,7 @@ def render(cfg, research):
                     raise UIError("حجم فایل از سقف مجاز بیشتر است.")
                 data = uploaded.getvalue()
                 artifact = parse_object(data)
-                record = saved_extraction(artifact.get("output", artifact))
+                record = saved_extraction(artifact)
                 result(record, key + "_saved_" + sha256(data).hexdigest()[:12], research)
             except (ValueError, TypeError, KeyError, AttributeError, RecursionError) as exc:
                 error_box(problem(exc, "artifact"), research)

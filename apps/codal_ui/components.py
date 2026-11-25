@@ -6,7 +6,7 @@ import streamlit as st
 from .analysis import STAGES
 from .catalog import catalog_for, scope_for
 from .presentation import answer_text, evidence_map, passage_html
-from .safety import codal_url, json_bytes
+from .safety import codal_url, json_bytes, public
 from .state import LEVELS, STATUS
 
 META = {"company": "شرکت", "year": "سال مالی", "financial_period": "دورهٔ گزارش", "document_type": "نوع گزارش",
@@ -35,6 +35,7 @@ def intro(title, text):
 
 
 def metadata(values, labels=META):
+    values = public({k: values[k] for k in labels if k in values})
     rows = [f'<span>{escape(label)} · <bdi>{escape(str(values[k]))}</bdi></span>'
             for k, label in labels.items() if values.get(k) is not None and values[k] != ""]
     if rows:
@@ -52,8 +53,8 @@ def choose_scope(cfg, key):
         return None
     cat = catalog_for(cfg, "proposed")
     if not cat or not cat.docs:
-        st.info("فرادادهٔ نمایه‌شده برای انتخاب دامنه در دسترس نیست.")
-        return None
+        from .safety import UIError
+        raise UIError("فراداده‌ای برای محدود کردن جست‌وجو موجود نیست. برای جست‌وجو در همهٔ اسناد، محدودیت را بردارید.")
     chosen = {}
     for col, field in zip(st.columns(4), ("company", "year", "financial_period", "document_type")):
         options = sorted({m[field] for m in cat.docs.values() if m.get(field)})
@@ -173,10 +174,12 @@ def answer(record, key):
     if ex.get("notes"):
         prose(ex["notes"])
     check = output.get("citation_validation", {})
-    if check.get("valid"):
+    if check.get("valid") and output.get("citation_view", {}).get("items"):
         st.caption("ارجاع‌ها از نظر ساختاری معتبرند. صحت مالی و پشتیبانی معنایی نیاز به بررسی جداگانه دارند.")
         if check.get("warning_count"):
             st.caption(f"تعداد هشدارهای ساختاری · {check['warning_count']}")
+    elif check.get("valid"):
+        st.caption("یافتهٔ دارای ارجاع برای اعتبارسنجی ثبت نشده است.")
 
 
 def result(record, key, research):
@@ -186,7 +189,8 @@ def result(record, key, research):
         st.caption("بازخوانی خروجی ذخیره‌شده")
     if record.get("output", {}).get("llm", {}).get("mocked"):
         st.warning("این خروجی با مدل جایگزین آزمون تولید شده است.")
-    if record.get("execution") == "smoke_retrieval":
+    if (record.get("execution") == "smoke_retrieval"
+            or record.get("configuration", {}).get("embedding", {}).get("backend") == "hash"):
         st.warning("بازیابی آزمایشی با بردارهای هش؛ امتیازها کاربرد پژوهشی ندارند.")
     tabs = st.tabs(["پاسخ", "شواهد و منابع"] + (["فرایند بازیابی"] if research else []))
     with tabs[0]:

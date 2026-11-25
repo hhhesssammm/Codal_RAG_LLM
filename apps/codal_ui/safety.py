@@ -60,7 +60,8 @@ def public(value):
     if isinstance(value, dict):
         return {k: public(v) for k, v in value.items()
                 if k.lower() not in {"project_root", "data_dir", "base_url", "authorization", "password",
-                                     "access_token", "refresh_token", "api_token", "headers", "token", "secret"}
+                                     "access_token", "refresh_token", "api_token", "headers", "token", "secret",
+                                     "chain_of_thought", "reasoning_content", "private_reasoning"}
                 and not re.search(r"api.?key|private.?key|password|secret_key", k, re.I)}
     if isinstance(value, (list, tuple)):
         return [public(v) for v in value]

@@ -2,11 +2,11 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from functools import lru_cache
+from threading import Lock
 from time import monotonic
 
-import streamlit as st
-
-from codal_rag.config import LLMConfig, validate_config
+from codal_rag.config import AppConfig, validate_config
 from codal_rag.egar.runtime import BudgetedLLM, QuestionBudget
 from codal_rag.llm.client import LLMClient
 from codal_rag.pipelines import extract as pipeline
@@ -39,7 +39,10 @@ def index_version(cfg):
         return ()
 
 
-@st.cache_resource(show_spinner=False, max_entries=4)
+_load_lock = Lock()
+
+
+@lru_cache(maxsize=4)
 def _engine(cfg, version):
     engine = DualRetrievalEngine(config=cfg)
     if index_version(cfg) != version:
@@ -52,7 +55,10 @@ def current_engine(cfg):
     if not version:
         raise UIError("ایندکس‌های ساده و ساختارآگاه کامل نیستند. ابتدا دستور ساخت ایندکس را برای مجموعهٔ گزارش‌ها اجرا کنید.")
     # A shared retriever must never retain the operator's LLM key or session-specific generation settings.
-    return _engine(replace(cfg, llm=LLMConfig()), version)
+    resource_cfg = AppConfig(project_root=cfg.project_root, data_dir=cfg.data_dir, embedding=cfg.embedding,
+                             retrieval=cfg.retrieval, top_k=cfg.top_k, random_seed=cfg.random_seed)
+    with _load_lock:
+        return _engine(resource_cfg, version)
 
 
 def llm_only(question, cfg, client_factory=None):
@@ -98,9 +104,17 @@ def execute(question, methods, cfg, *, scope=None, comparison=False, notify=None
             stage("question")
             config = effective(cfg, method, comparison)
             record["configuration"] = public(config.public_dict())
+            runtime_llm = record["configuration"]["llm"]
+            if comparison or config.extraction.schema_version == 2:
+                runtime_llm.update(timeout=min(config.llm.timeout, config.egar.call_timeout_seconds),
+                                   max_retries=0, budgeted_retries=config.egar.max_retries)
             record["execution"] = "live_provider_request" if method == "llm_only" else (
                 "smoke_retrieval" if cfg.embedding.backend == "hash" else "configured_pipeline")
             if method == "llm_only":
+                record["configuration"] = {"llm": runtime_llm,
+                    "max_llm_calls": config.egar.max_llm_calls, "question_timeout": config.egar.timeout_seconds,
+                    "per_call_timeout": min(config.llm.timeout, config.egar.call_timeout_seconds),
+                    "retry_budget": config.egar.max_retries, "documents_supplied": 0}
                 stage("generate")
                 record["answer"], record["usage"] = llm_only(question, config, client_factory)
             else:

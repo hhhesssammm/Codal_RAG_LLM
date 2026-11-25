@@ -22,8 +22,8 @@ def initialize(state):
     if "conversations" not in state:
         state.conversations = {}
         new_conversation(state)
-    for key, value in dict(mode="تحلیلگر", theme="روشن", profiles=None, overrides={},
-                           comparison=None, selected_page="assistant").items():
+    for key, value in dict(mode="تحلیلگر", theme="روشن", profiles=None, overrides={}, jobs={},
+                           comparison=None).items():
         state.setdefault(key, value)
 
 

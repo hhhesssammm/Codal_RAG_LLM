@@ -4,6 +4,7 @@ import streamlit as st
 from codal_ui import theme
 from codal_ui.components import error_box
 from codal_ui.configuration import config_for
+from codal_ui.jobs import collect
 from codal_ui.pages import assistant, comparison, documents, evaluation, settings
 from codal_ui.safety import problem
 from codal_ui.state import PAGES, initialize
@@ -19,9 +20,7 @@ def main():
     theme.apply(state.theme)
     with st.sidebar:
         theme.brand()
-        page = st.radio("فضای کار", list(PAGES), index=list(PAGES).index(state.selected_page),
-                        format_func=PAGES.get, key="ci_navigation")
-        state.selected_page = page
+        page = st.radio("فضای کار", list(PAGES), format_func=PAGES.get, key="ci_navigation")
         st.divider()
         st.caption("نمای فعال · " + state.mode)
     research = state.mode == "پژوهشگر"
@@ -32,6 +31,7 @@ def main():
         settings.render(None, research)
         return
     try:
+        collect(state)
         RENDER[page](cfg, research)
     except (ValueError, OSError, TypeError, KeyError, AttributeError, IndexError, RecursionError, StopIteration) as exc:
         error_box(problem(exc, "page"), research)

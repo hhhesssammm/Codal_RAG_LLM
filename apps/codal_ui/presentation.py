@@ -67,6 +67,11 @@ def evidence_map(record):
 
 
 def saved_extraction(obj):
+    envelope = {}
+    if "output" in obj:
+        envelope, obj = obj, obj["output"]
+        if not isinstance(obj, dict):
+            raise UIError("خروجی استخراج خواندنی نیست.")
     if obj.get("method") not in ("baseline", "proposed") or not isinstance(obj.get("evidence"), list):
         raise UIError("فایل باید خروجی دستور استخراج باشد.")
     if obj.get("schema_version", 1) not in (1, 2):
@@ -80,10 +85,20 @@ def saved_extraction(obj):
     if not obj.get("query") or obj["query"] != ex.get("query"):
         raise UIError("پرسش فایل با پاسخ تطبیق ندارد.")
     assert_valid_extraction(ex, evidence, allow_single_chunk_latent=obj.get("schema_version") == 2)
+    if obj.get("schema_version") == 2:
+        for level in LEVELS:
+            for claim in ex[level]:
+                labels = claim.get("conceptual_labels")
+                if not isinstance(labels, list) or any(not isinstance(v, str) or not v.strip() for v in labels):
+                    raise UIError("برچسب‌های مفهومی خروجی نسخهٔ ۲ معتبر نیستند.")
     citations = build_citation_view(ex, evidence, query=obj["query"], method=obj["method"])
     check = validate_citation_view(citations)
     supplied = obj.get("citation_view")
-    if not check["valid"] or not validate_citation_view(supplied)["valid"] or supplied.get("items") != citations["items"]:
+    def identities(view):
+        return [(item.get("level"), item["statement"], [(e["evidence_id"], e["document_id"], e["chunk_id"])
+                 for e in item["evidence"]]) for item in view["items"]]
+
+    if not check["valid"] or not validate_citation_view(supplied)["valid"] or identities(supplied) != identities(citations):
         raise UIError("ارجاع‌های ذخیره‌شده با شواهد و یافته‌های همین پاسخ تطبیق ندارند.")
     # Ignore extra user-supplied keys, including unrelated objects or private prompts.
     keys = ("schema_version", "method", "query", "llm", "extraction", "evidence", "source_trace",
@@ -91,8 +106,13 @@ def saved_extraction(obj):
     output = {k: obj[k] for k in keys if k in obj}
     output.update(citation_view=citations, citation_validation=check)
     method = "egar" if output.get("egar", {}).get("enabled") else obj["method"]
-    return public({"method": method, "status": "complete", "execution": "saved", "output": output,
-                   "usage": output.get("operational", {}), "stages": []})
+    if envelope and envelope.get("method") != method:
+        raise UIError("روش ثبت‌شده با خروجی استخراج مطابقت ندارد.")
+    record = {k: envelope[k] for k in ("configuration", "scope", "initial", "index_provenance",
+                                        "initial_sha256", "normalized_query", "seconds") if k in envelope}
+    record.update(method=method, status=envelope.get("status", "complete"), execution="saved", output=output,
+                  usage=output.get("operational", envelope.get("usage", {})), stages=[])
+    return public(record)
 
 
 def answer_text(record):
