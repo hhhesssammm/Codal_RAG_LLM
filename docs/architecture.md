@@ -6,7 +6,7 @@ documented in [EGAR](egar.md): `retrieval/sparse.py` adds BM25/RRF,
 assessment/retrieval, and `pipelines/research.py` isolates A-D and D+EGAR experiments.
 New chunk metadata includes source-unit mappings without changing embedding text.
 
-`src/codal_rag` is the only application package; installing it exposes `codal-rag` and `python -m codal_rag`. No runtime code adjusts `sys.path`, imports the old flat `src` modules, or reads `config.py`. CLI and Streamlit pass the same validated `AppConfig` into reusable pipelines. Importing a module does not start processing or load a model.
+`src/codal_rag` is the installable research package and provides `codal-rag` and `python -m codal_rag`. The Streamlit entry point in `apps/streamlit_app.py` uses the UI modules in `apps/codal_ui`. CLI and Streamlit pass a validated `AppConfig` into the same reusable pipelines. Models load on demand. The [application guide](codal-intelligence.md) describes presentation, execution boundaries and local artifacts.
 
 | Layer | Responsibility |
 | --- | --- |

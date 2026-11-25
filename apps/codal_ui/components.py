@@ -240,5 +240,3 @@ def result(record, key, research):
             trace_details(record)
     st.download_button("دریافت نتیجهٔ JSON", json_bytes(record), key=key + "_download",
                        file_name=record["method"] + ".json", mime="application/json")
-
-

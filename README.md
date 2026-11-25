@@ -1,4 +1,6 @@
-# Codal RAG
+# Codal Intelligence
+
+**سامانه هوشمند تحلیل گزارش‌های مالی** is a Persian, right-to-left Streamlit workspace for asking questions about Codal reports, tracing findings to their sources and inspecting research runs. Open **تحلیل هوشمند** to ask an independent question. **تنظیمات → پژوهشگر** adds retrieval diagnostics and the EGAR trace where available. See the [application guide and screenshots](docs/codal-intelligence.md).
 
 An installable Persian financial-document RAG experiment package. It compares fixed-size Baseline chunks with structure-aware Proposed chunks using the same embedding model, normalized query vector, similarity metric, corpus, and retrieval depth. It then extracts explicit, implicit, and latent claims with traceable evidence and evaluates saved runs.
 
@@ -24,7 +26,7 @@ Python 3.10–3.13 is declared supported; Python 3.12 is recommended and was tes
 ```powershell
 git clone https://github.com/hhhesssammm/Codal_RAG_LLM.git
 cd Codal_RAG_LLM
-git switch master
+git switch feat/codal-intelligence-ui
 py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install --upgrade pip
 .\.venv\Scripts\python.exe -m pip install -e ".[dev,ui]"
@@ -116,12 +118,16 @@ Documents are identified by their path relative to the supplied input directory,
 ## Streamlit
 
 ```powershell
-# For the offline indexes above, provide both profiles in the sidebar.
-$env:CODAL_CONFIG = (Resolve-Path configs/base.yaml).Path
-python -m streamlit run apps/streamlit_app.py
+# Existing checkout and project virtual environment, from the repository root
+git fetch origin
+git switch feat/codal-intelligence-ui
+git pull --ff-only origin feat/codal-intelligence-ui
+.\.venv\Scripts\python.exe -m streamlit run apps/streamlit_app.py
 ```
 
-The sidebar accepts comma-separated absolute or shell-relative YAML paths (for smoke, `configs/base.yaml,configs/smoke.yaml`). It shows missing-index guidance before loading models. Rebuild indexes after changing embedding settings and use the reload button to clear the cached engine. Results show Baseline/Proposed columns, source metadata, a JSON download, and a viewer for saved extraction citations.
+The UI uses existing project dependencies. Open the local URL printed by Streamlit. For indexes built with the offline example, select `base.yaml` followed by `smoke.yaml` under **تنظیمات → پیکربندی پیشرفته**. Research mode offers a retrieval-only comparison that runs with these indexes without a provider. Open an existing extraction JSON in the assistant or an evaluation report in **ارزیابی پژوهشی** without running a model.
+
+**مقایسه روش‌ها** runs the selected LLM-only, Baseline, Proposed and Proposed + EGAR conditions. **مدیریت اسناد** reads document metadata, source passages and the two chunk representations. The [application guide](docs/codal-intelligence.md) covers configuration, provenance, offline use and verification limits.
 
 ## Evaluation and checks
 
