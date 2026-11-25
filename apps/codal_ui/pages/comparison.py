@@ -2,7 +2,7 @@ import streamlit as st
 
 from ..analysis import current_engine
 from ..jobs import submitted_run
-from ..components import RESULT_STATUS, choose_scope, intro, metadata, prose, result, source
+from ..components import RESULT_STATUS, choose_scope, data_table, intro, metadata, prose, result, source
 from ..presentation import comparison_text
 from ..safety import UIError, json_bytes, public
 from ..state import METHODS, STATUS
@@ -72,7 +72,7 @@ def render(cfg, research):
                       "توکن ورودی": usage.get("prompt_tokens"), "توکن خروجی": usage.get("completion_tokens"),
                       "اعتبار ساختاری": citations, "کفایت": sufficiency,
                       "دور تکمیلی": trace.get("iteration_count") if trace.get("enabled") else None})
-    st.dataframe(table, hide_index=True, use_container_width=True)
+    data_table(table, "comparison_table_page")
     st.caption("زمان هر روش RAG شامل سهم کامل بازیابی اولیهٔ مشترک است. خط تیره یعنی اندازه‌گیری نشده یا نامرتبط. "
                "تعرفهٔ تأییدشدهٔ ارائه‌دهنده در سامانه ثبت نشده است.")
     layout = st.radio("چیدمان پاسخ‌ها", ["کنار هم", "زبانه‌ای"], horizontal=True, key="compare_layout")

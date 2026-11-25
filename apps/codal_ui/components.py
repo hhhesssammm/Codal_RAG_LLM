@@ -29,6 +29,30 @@ def passage(text):
     st.markdown(passage_html(text), unsafe_allow_html=True)
 
 
+def data_table(rows, key):
+    """Keep the table readable on older installations with incompatible Arrow/NumPy builds."""
+    try:
+        st.dataframe(rows, hide_index=True, use_container_width=True)
+        return True
+    except ImportError:
+        st.caption("جدول به‌صورت متنی نمایش داده می‌شود. موتور جدول تعاملی در این محیط در دسترس نیست.")
+    if not rows:
+        return False
+    labels = list(dict.fromkeys(k for row in rows for k in row))
+    page_size = 50
+    pages = (len(rows) + page_size - 1) // page_size
+    page = st.number_input("صفحهٔ جدول", 1, pages, 1, key=key) if pages > 1 else 1
+    header = "".join("<th><bdi>" + escape(str(label)) + "</bdi></th>" for label in labels)
+    body = []
+    for row in rows[(page-1)*page_size:page*page_size]:
+        cells = [row.get(label) for label in labels]
+        body.append("<tr>" + "".join("<td><bdi>" + escape(str(v) if v is not None else "—")
+                                     + "</bdi></td>" for v in cells) + "</tr>")
+    st.markdown('<div class="ci-table" tabindex="0"><table><thead><tr>' + header + '</tr></thead><tbody>' +
+                "".join(body) + '</tbody></table></div>', unsafe_allow_html=True)
+    return False
+
+
 def intro(title, text):
     st.title(title)
     st.markdown('<div class="ci-intro">' + escape(text) + "</div>", unsafe_allow_html=True)

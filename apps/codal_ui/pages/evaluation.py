@@ -5,7 +5,7 @@ import streamlit as st
 
 from codal_rag.pipelines.research import ARMS
 from codal_rag.storage.json_io import digest
-from ..components import intro, metadata, prose, result, source
+from ..components import data_table, intro, metadata, prose, result, source
 from ..evaluations import aggregate, details, discover, execution_kind, match_run, report_rows
 from ..presentation import saved_extraction
 from ..safety import UIError, json_bytes, parse_object, public, read_object
@@ -35,9 +35,9 @@ def render(cfg, research):
             invalid += 1
     if manifests:
         with st.expander("فهرست اجراها"):
-            st.dataframe([{"اجرا": str(p.parent.relative_to(root)), "پرسش": len(m["question_ids"]),
+            data_table([{"اجرا": str(p.parent.relative_to(root)), "پرسش": len(m["question_ids"]),
                            "منشأ": execution_kind(m)[0], "تکمیل": m["complete"]}
-                          for p, m in manifests.items()], hide_index=True, use_container_width=True)
+                          for p, m in manifests.items()], "evaluation_manifests_page")
     if invalid:
         st.warning("شناسنامهٔ یک یا چند اجرا خواندنی نیست.")
     selected = st.selectbox("گزارش ذخیره‌شده", [None, *reports],
@@ -84,19 +84,20 @@ def render(cfg, research):
         metric = st.selectbox("معیار", keys, index=next((i for i, k in enumerate(keys) if k.startswith("recall@")), 0),
                               format_func=lambda k: METRICS.get(k, k))
         values = {m: data.get(metric) for m, data in summaries.items()}
-        st.dataframe([{"روش": m, METRICS.get(metric, metric): v, "وضعیت": "امتیازدهی نشده" if v is None else "ثبت شده"}
-                      for m, v in values.items()], hide_index=True, use_container_width=True)
+        grid_available = data_table([{"روش": m, METRICS.get(metric, metric): v,
+                                     "وضعیت": "امتیازدهی نشده" if v is None else "ثبت شده"}
+                                     for m, v in values.items()], "evaluation_metrics_page")
         scored = {m: v for m, v in values.items() if type(v) in (int, float)}
-        if research_run and scored:
+        if research_run and scored and grid_available:
             st.bar_chart(pd.DataFrame({"method": list(scored), "value": list(scored.values())}).set_index("method"),
                          color="#308873")
     if not visible:
         st.info("برای فیلترهای انتخاب‌شده نتیجه‌ای موجود نیست.")
         return
     st.subheader("بررسی پرسش‌ها")
-    st.dataframe([{"شناسه": r["id"], "روش": r["method"], "رده": LEVELS[r["type"]],
+    data_table([{"شناسه": r["id"], "روش": r["method"], "رده": LEVELS[r["type"]],
                    **{k: v for k, v in r["metrics"].items() if v is None or type(v) in (float, int, bool)}}
-                  for r in visible], hide_index=True, use_container_width=True)
+                  for r in visible], "evaluation_questions_page")
     qid = st.selectbox("پرسش", list(dict.fromkeys(r["id"] for r in visible)))
     available = {r["method"]: r for r in visible if r["id"] == qid}
     m = st.selectbox("روش برای بررسی", list(available))
@@ -111,9 +112,9 @@ def render(cfg, research):
             prose(candidate)
         if row["retrieval"].get("retrieval_details"):
             with st.expander("رتبه و شناسهٔ قطعه‌های بازیابی‌شده"):
-                st.dataframe(row["retrieval"]["retrieval_details"], hide_index=True)
+                data_table(row["retrieval"]["retrieval_details"], "evaluation_hits_page")
     if row["metrics"].get("errors"):
-        st.dataframe(row["metrics"]["errors"], hide_index=True)
+        data_table(row["metrics"]["errors"], "evaluation_errors_page")
     if report["schema_version"] == 2:
         benchmark = st.file_uploader("مجموعهٔ ارزیابی همان اجرا برای پاسخ و شواهد مرجع (اختیاری)",
                                      type="json", key="eval_benchmark")

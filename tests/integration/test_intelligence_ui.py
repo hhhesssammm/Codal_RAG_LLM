@@ -300,3 +300,17 @@ def test_rerun_reattaches_to_inflight_submission(monkeypatch, smoke_config):
         assert calls == ["فروش؟"] and state.comparison["id"] == "one-submission" and not state.jobs
     finally:
         release.set()
+
+
+def test_plain_table_fallback_preserves_nulls_and_escapes_untrusted_text(monkeypatch):
+    from codal_ui import components
+    rendered = []
+
+    def unavailable(*args, **kwargs):
+        raise ImportError("Arrow runtime unavailable")
+
+    monkeypatch.setattr(components.st, "dataframe", unavailable)
+    monkeypatch.setattr(components.st, "caption", lambda msg: None)
+    monkeypatch.setattr(components.st, "markdown", lambda html, **kwargs: rendered.append(html))
+    assert not components.data_table([{"method": "<b>روش</b>", "score": None}], "page")
+    assert "&lt;b&gt;روش&lt;/b&gt;" in rendered[0] and "—" in rendered[0]
