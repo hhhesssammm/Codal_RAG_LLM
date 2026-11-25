@@ -26,9 +26,14 @@ def test_streamlit_retrieval(corpus, smoke_config, tokenizer, monkeypatch):
     monkeypatch.setenv('CODAL_CONFIG',str(config_path))
     app = AppTest.from_file(str(Path(__file__).parents[2]/'apps'/'streamlit_app.py')).run()
     assert not app.exception
-    next(x for x in app.text_input if x.label == 'سؤال کاربر').set_value('فروش شرکت')
-    next(x for x in app.button if x.label == 'جست‌وجو').click()
+    app.radio(key='ci_navigation').set_value('settings').run()
+    app.radio(key='appearance_mode').set_value('پژوهشگر').run()
+    app.radio(key='ci_navigation').set_value('comparison').run()
+    next(x for x in app.radio if x.label == 'نوع مقایسه').set_value('فقط بازیابی').run()
+    next(x for x in app.text_input if x.label == 'پرسش بازیابی').set_value('فروش شرکت')
+    next(x for x in app.button if x.label == 'جست‌وجوی شواهد').click()
     app.run(timeout=10)
     assert not app.exception
     assert not app.error
-    assert len(app.header) == 2
+    assert all(app.session_state['retrieved'][method] for method in ('baseline', 'proposed'))
+    assert any(x.label == 'دریافت خروجی بازیابی' for x in app.get('download_button'))

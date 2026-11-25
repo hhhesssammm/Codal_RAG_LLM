@@ -18,7 +18,8 @@ def abstention(query, reason):
             "insufficient_evidence": True, "notes": reason}
 
 
-def run_adaptive(query, payload, method, config, *, engine, client, scope=None, judge_client=None):
+def run_adaptive(query, payload, method, config, *, engine, client, scope=None, judge_client=None,
+                 on_stage=None):
     if not config.egar.enabled:
         raise ValueError("Adaptive controller requires egar.enabled=true")
     budget = QuestionBudget(config.egar)
@@ -68,7 +69,11 @@ def run_adaptive(query, payload, method, config, *, engine, client, scope=None, 
                     raise BudgetExceeded("Question time budget exhausted")
                 selected, evidence, excluded, final_tokens = pack_hits(pool, config.extraction.max_evidence_tokens)
                 sources = trace_sources(evidence, selected)
+                if evidence and on_stage:
+                    on_stage('extract')
                 extraction = ThreeLevelExtractor(generator, schema_version=2).extract(query, evidence)
+                if on_stage:
+                    on_stage('assess')
                 assessment = analyzer.analyze(query, extraction, evidence, scope=resolved, sources=sources, headings=headings)
                 trace["assessments"].append({"iteration": iteration, "evidence": [e.to_dict() for e in evidence],
                     "source_trace": sources, "excluded_by_context_budget": excluded,
@@ -116,6 +121,8 @@ def run_adaptive(query, payload, method, config, *, engine, client, scope=None, 
                         break
                     step["queries"].append(gap)
                     trace["supplementary_queries"].append(gap["query"])
+                    if on_stage:
+                        on_stage('supplement')
                     hits = budget.run(lambda g=gap, k=limit: engine.search_method(g["query"], method, k,
                         scope=resolved, section_hints=g["section_hints"]))
                     if not isinstance(hits, list) or len(hits) > limit:

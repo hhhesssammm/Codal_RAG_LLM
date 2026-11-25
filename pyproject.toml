@@ -25,6 +25,7 @@ include = ["codal_rag*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["apps"]
 markers = ["external: opt-in tests requiring downloaded models or API credentials"]
 addopts = "-m 'not external'"
 

@@ -14,7 +14,7 @@ from codal_rag.storage.json_io import save_json
 
 def extract_retrieval(payload: dict, method: str, config=None, *, llm_client=None,
                       query: str | None = None, output=None, engine=None, scope=None,
-                      judge_client=None) -> dict:
+                      judge_client=None, on_stage=None, on_usage=None) -> dict:
     if method not in {'baseline', 'proposed'}:
         raise ValueError('Extraction method must be baseline or proposed')
     config = config or load_config()
@@ -56,7 +56,7 @@ def extract_retrieval(payload: dict, method: str, config=None, *, llm_client=Non
             scope = RetrievalScope(**payload['scope'])
         adaptive = run_adaptive(query, payload, method, config,
                                 engine=engine or DualRetrievalEngine(config=config), client=client,
-                                scope=scope, judge_client=judge_client)
+                                scope=scope, judge_client=judge_client, on_stage=on_stage)
         extraction, evidence = adaptive.pop('extraction'), adaptive.pop('evidence')
         extras.update(adaptive)
         extras['context_budget']['used'] = adaptive['operational']['final_evidence_tokens']
@@ -66,6 +66,8 @@ def extract_retrieval(payload: dict, method: str, config=None, *, llm_client=Non
         from codal_rag.egar.runtime import BudgetedLLM, QuestionBudget
         from codal_rag.egar.evidence import content, token_upper_bound
         budget = QuestionBudget(config.egar)
+        if evidence and on_stage:
+            on_stage('extract')
         extraction = ThreeLevelExtractor(BudgetedLLM(client, budget), schema_version=2).extract(query, evidence)
         for level in ('explicit', 'implicit', 'latent'):
             for claim in extraction[level]:
@@ -78,7 +80,13 @@ def extract_retrieval(payload: dict, method: str, config=None, *, llm_client=Non
                        'additional_retrieval_token_upper_bound': 0,
                        'retrieved_token_count_basis': 'utf8_byte_upper_bound_not_provider_tokens'})
     else:
+        if evidence and on_stage:
+            on_stage('extract')
         extraction = ThreeLevelExtractor(client).extract(query, evidence)
+        if evidence and on_usage and getattr(client, 'last_usage', None):
+            on_usage(client.last_usage)
+    if on_stage:
+        on_stage('citations')
     citations = build_citation_view(extraction, evidence, query=query, method=method)
     validation = validate_citation_view(citations)
     if not validation['valid']:
